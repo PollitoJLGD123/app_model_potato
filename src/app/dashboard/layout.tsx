@@ -87,6 +87,28 @@ export default function DashboardLayout({
               </svg>
               <span className="font-medium">Evaluación</span>
             </Link>
+
+            <Link
+              href="/dashboard/evaluation-complete"
+              className={`flex items-center gap-3 px-6 py-3 transition-colors ${isActive(
+                "/dashboard/evaluation-complete"
+              )}`}
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 9l2 2 4-4"
+                />
+              </svg>
+              <span className="font-medium">Evaluación Completa</span>
+            </Link>
           </nav>
 
           <div className="absolute bottom-0 w-full p-6 border-t border-gray-200">
