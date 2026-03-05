@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { evaluationImage, evaluationRoboflow } from "@/service/evaluation";
 import {
   LocalEvaluationResult,
@@ -185,6 +186,22 @@ export default function EvaluationCompletePage() {
       setLoadingStep("step1");
       const detectionResponse = await evaluationRoboflow(selectedImage);
       setRoboflowResult(detectionResponse.data);
+
+      // Si Roboflow no detecta ninguna hoja, mostramos alerta y detenemos el flujo.
+      if (
+        !detectionResponse.data.has_matches ||
+        !detectionResponse.data.predictions.length
+      ) {
+        const message =
+          detectionResponse.message ||
+          "No se detectó ninguna hoja en la imagen. Por favor sube una imagen donde la hoja sea claramente visible.";
+
+        setRoboflowMessage(message);
+        toast.info(message);
+        setLoadingStep("idle");
+        return;
+      }
+
       setRoboflowMessage(detectionResponse.message || "Deteccion completada");
 
       setLoadingStep("step2");
@@ -440,8 +457,8 @@ export default function EvaluationCompletePage() {
                   </p>
                   {!roboflowResult.has_matches && (
                     <p className="text-sm mt-2 text-blue-700">
-                      No hubo coincidencias en la deteccion. Se completo
-                      igualmente el paso 2.
+                      No se detectó ninguna hoja en la imagen. No se ejecutó la
+                      clasificación.
                     </p>
                   )}
                 </>
@@ -454,7 +471,12 @@ export default function EvaluationCompletePage() {
               <p className="text-sm font-semibold text-emerald-700">
                 Paso 2: Clasificacion de Enfermedad
               </p>
-              {classificationResult ? (
+              {roboflowResult && !roboflowResult.has_matches ? (
+                <p className="text-sm text-slate-600 mt-1">
+                  No se realizó la clasificación porque no se detectó ninguna
+                  hoja válida en la imagen.
+                </p>
+              ) : classificationResult ? (
                 <>
                   <p className="text-sm text-emerald-700 mt-1 font-semibold">
                     {getDiseaseName(classificationResult.clase_predicha)}

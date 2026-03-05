@@ -16,6 +16,7 @@ import {
   getSurcosByLote,
 } from "@/service/hierarchy";
 import { Lote, Modulo, Surco } from "@/types/hierarchy";
+import { toast } from "sonner";
 
 export default function DashboardLayout({
   children,
@@ -180,6 +181,12 @@ export default function DashboardLayout({
               className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/evaluation-complete")}`}
             >
               Evaluación Completa
+            </button>
+            <button
+              onClick={() => router.push("/dashboard/recommendations")}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/recommendations")}`}
+            >
+              🌿 Recomendaciones
             </button>
           </div>
 
