@@ -206,6 +206,12 @@ export default function DashboardLayout({
             >
               🕘 Historial
             </button>
+            <button
+              onClick={() => router.push("/dashboard/diagnosis")}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/diagnosis")}`}
+            >
+              🩺 Diagnóstico del Cultivo
+            </button>
           </div>
 
           {/* <div className="p-4 border-b border-slate-100 bg-slate-50">

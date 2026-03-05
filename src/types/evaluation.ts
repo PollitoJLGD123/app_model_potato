@@ -89,13 +89,8 @@ export interface PredictionHistoryResponse {
   message: string;
 }
 
-export interface RoboflowEvaluationResult {
-  prediccion: PrediccionRecord;
-  roboflow: RoboflowDetection;
-}
-
 export interface RoboflowEvaluationResponse {
-  data: RoboflowEvaluationResult;
+  data: RoboflowDetection;
   message: string;
   status: "success" | "error";
 }

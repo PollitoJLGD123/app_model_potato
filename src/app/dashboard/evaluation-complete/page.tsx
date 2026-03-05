@@ -6,7 +6,7 @@ import { evaluationImage, evaluationRoboflow } from "@/service/evaluation";
 import {
   MultiModelEvaluationResult,
   ModelResult,
-  RoboflowEvaluationResult,
+  RoboflowDetection,
   RoboflowPrediction,
 } from "@/types/evaluation";
 
@@ -27,7 +27,7 @@ export default function EvaluationCompletePage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [roboflowResult, setRoboflowResult] =
-    useState<RoboflowEvaluationResult | null>(null);
+    useState<RoboflowDetection | null>(null);
   const [classificationResult, setClassificationResult] =
     useState<MultiModelEvaluationResult | null>(null);
   const [roboflowMessage, setRoboflowMessage] = useState<string>("");
@@ -111,10 +111,8 @@ export default function EvaluationCompletePage() {
     return "#16a34a";
   };
 
-  const roboflow = roboflowResult?.roboflow ?? null;
-
   const renderBoxes: RenderBox[] = useMemo(() => {
-    if (!roboflow || !roboflow.predictions.length) {
+    if (!roboflowResult || !roboflowResult.predictions.length) {
       return [];
     }
 
@@ -130,7 +128,7 @@ export default function EvaluationCompletePage() {
     const scaleX = displaySize.width / naturalSize.width;
     const scaleY = displaySize.height / naturalSize.height;
 
-    return roboflow.predictions.map((prediction: RoboflowPrediction) => ({
+    return roboflowResult.predictions.map((prediction: RoboflowPrediction) => ({
       left: (prediction.x - prediction.width / 2) * scaleX,
       top: (prediction.y - prediction.height / 2) * scaleY,
       width: prediction.width * scaleX,
@@ -138,7 +136,7 @@ export default function EvaluationCompletePage() {
       label: prediction.class,
       confidence: prediction.confidence,
     }));
-  }, [roboflow, naturalSize, displaySize]);
+  }, [roboflowResult, naturalSize, displaySize]);
 
   const getDiseaseName = (className: string): string => {
     const names: { [key: string]: string } = {
@@ -223,9 +221,7 @@ export default function EvaluationCompletePage() {
       const detectionResponse = await evaluationRoboflow(selectedImage);
       setRoboflowResult(detectionResponse.data);
 
-      const rbf = detectionResponse.data.roboflow;
-
-      if (!rbf.has_matches || !rbf.predictions.length) {
+      if (!detectionResponse.data.has_matches || !detectionResponse.data.predictions.length) {
         const message =
           detectionResponse.message ||
           "No se detectó ninguna hoja en la imagen. Por favor sube una imagen donde la hoja sea claramente visible.";
@@ -478,18 +474,18 @@ export default function EvaluationCompletePage() {
               <p className="text-sm font-semibold text-slate-700">
                 Paso 1: Deteccion Cuadros Delimitadores
               </p>
-              {roboflow ? (
+              {roboflowResult ? (
                 <>
                   <p className="text-sm text-slate-600 mt-1">
-                    Modelo: {roboflow.model_id}
+                    Modelo: {roboflowResult.model_id}
                   </p>
                   <p className="text-sm text-slate-600 mt-1">
-                    Detecciones: {roboflow.predictions.length}
+                    Detecciones: {roboflowResult.predictions.length}
                   </p>
                   <p className="text-sm mt-1 text-slate-700">
                     {roboflowMessage}
                   </p>
-                  {!roboflow.has_matches && (
+                  {!roboflowResult.has_matches && (
                     <p className="text-sm mt-2 text-blue-700">
                       No se detectó ninguna hoja en la imagen. No se ejecutó la
                       clasificación.
@@ -505,7 +501,7 @@ export default function EvaluationCompletePage() {
               <p className="text-sm font-semibold text-emerald-700">
                 Paso 2: Clasificacion de Enfermedad
               </p>
-              {roboflow && !roboflow.has_matches ? (
+              {roboflowResult && !roboflowResult.has_matches ? (
                 <p className="text-sm text-slate-600 mt-1">
                   No se realizó la clasificación porque no se detectó ninguna
                   hoja válida en la imagen.
