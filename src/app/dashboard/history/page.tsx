@@ -11,6 +11,7 @@ import {
 } from "@/types/evaluation";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { X } from "@/components/ui-icons";
 
 const ZOOM_OPTIONS = [1, 2, 3] as const;
 
@@ -75,6 +76,8 @@ type RenderBox = {
   confidence: number;
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function HistoryPage() {
   const [predictions, setPredictions] = useState<PrediccionRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,42 +85,37 @@ export default function HistoryPage() {
   const [zoomLevel, setZoomLevel] = useState<(typeof ZOOM_OPTIONS)[number]>(1);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const imageRef = useRef<HTMLImageElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const exportToPDF = async () => {
-    if (!selected) {
-      toast.error("No hay predicción seleccionada");
-      return;
-    }
-
+  const generatePDFBlob = async (
+    pred: PrediccionRecord,
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const tempContainer = document.createElement("div");
     try {
-      toast.loading("Generando PDF...");
+      const diagnosis = pred.fase2_resumen?.clase_predicha ?? "Sin clasificar";
+      const confidence = pred.fase2_resumen?.confianza ?? 0;
+      const mejor_modelo = pred.fase2_resumen?.modelo ?? "N/A";
+    tempContainer.style.position = "absolute";
+    tempContainer.style.top = "-9999px";
+    tempContainer.style.left = "-9999px";
+    tempContainer.style.width = "800px";
+    tempContainer.style.backgroundColor = "#ffffff";
+    tempContainer.style.fontFamily = "Arial, sans-serif";
+    tempContainer.style.padding = "40px";
+    tempContainer.style.color = "#000";
 
-      // Crear contenedor temporal
-      const tempContainer = document.createElement("div");
-      tempContainer.style.position = "absolute";
-      tempContainer.style.top = "-9999px";
-      tempContainer.style.left = "-9999px";
-      tempContainer.style.width = "800px";
-      tempContainer.style.backgroundColor = "#ffffff";
-      tempContainer.style.fontFamily = "Arial, sans-serif";
-      tempContainer.style.padding = "40px";
-      tempContainer.style.color = "#000";
+    // Contenedor de imagen
+    const imgContainer = document.createElement("div");
+    imgContainer.style.textAlign = "center";
+    imgContainer.style.marginBottom = "30px";
 
-      const diagnosis =
-        selected.fase2_resumen?.clase_predicha ?? "Sin clasificar";
-      const confidence = selected.fase2_resumen?.confianza ?? 0;
-      const mejor_modelo = selected.fase2_resumen?.modelo ?? "N/A";
-
-      // Contenedor de imagen
-      const imgContainer = document.createElement("div");
-      imgContainer.style.textAlign = "center";
-      imgContainer.style.marginBottom = "30px";
-
-      const img = document.createElement("img");
-      img.src = selected.imagen_url;
+    const img = document.createElement("img");
+    img.src = pred.imagen_url;
       img.style.maxWidth = "100%";
       img.style.maxHeight = "250px";
       img.style.borderRadius = "8px";
@@ -141,8 +139,8 @@ export default function HistoryPage() {
       header.appendChild(title);
 
       const meta = document.createElement("p");
-      meta.textContent = `ID: #${selected.id} | Fecha: ${formatDate(
-        selected.fecha ?? selected.created_at,
+      meta.textContent = `ID: #${pred.id} | Fecha: ${formatDate(
+        pred.fecha ?? pred.created_at,
       )}`;
       meta.style.fontSize = "12px";
       meta.style.color = "#666";
@@ -166,14 +164,14 @@ export default function HistoryPage() {
       fase1Title.style.color = "#15803d";
       fase1.appendChild(fase1Title);
 
-      if (selected.fase1_resumen) {
+      if (pred.fase1_resumen) {
         const f1Content = document.createElement("div");
         f1Content.style.fontSize = "13px";
         f1Content.style.lineHeight = "1.8";
 
-        const hasMatches = selected.fase1_resumen.has_matches;
-        const detections = selected.fase1_resumen.total_detecciones;
-        const clases = selected.fase1_resumen.clases_detectadas
+        const hasMatches = pred.fase1_resumen.has_matches;
+        const detections = pred.fase1_resumen.total_detecciones;
+        const clases = pred.fase1_resumen.clases_detectadas
           .map((c) => diseaseName(c))
           .join(", ");
 
@@ -181,7 +179,7 @@ export default function HistoryPage() {
           <div style="margin-bottom: 8px"><strong>Estado:</strong> ${hasMatches ? "✓ Detecciones encontradas" : "✓ Sin detecciones"}</div>
           <div style="margin-bottom: 8px"><strong>Total:</strong> ${detections} objetos detectados</div>
           ${clases ? `<div style="margin-bottom: 8px"><strong>Clases:</strong> ${clases}</div>` : ""}
-          <div><strong>Modelo:</strong> ${selected.fase1_payload?.model_id || "N/A"}</div>
+          <div><strong>Modelo:</strong> ${pred.fase1_payload?.model_id || "N/A"}</div>
         `;
         fase1.appendChild(f1Content);
       }
@@ -216,7 +214,7 @@ export default function HistoryPage() {
       tempContainer.appendChild(fase2);
 
       // Métricas si existe fase2 payload
-      if (selected.fase2_payload) {
+      if (pred.fase2_payload) {
         const metricas = document.createElement("div");
         metricas.style.padding = "15px";
         metricas.style.backgroundColor = "#f3f4f6";
@@ -235,7 +233,7 @@ export default function HistoryPage() {
         const modelsDiv = document.createElement("div");
         modelsDiv.style.lineHeight = "2";
 
-        const fase2Payload = selected.fase2_payload;
+        const fase2Payload = pred.fase2_payload;
         Object.entries(fase2Payload.resultados).forEach(
           ([key, r]: [string, ModelResult]) => {
             const isBest = key === fase2Payload.mejor_modelo_global;
@@ -298,23 +296,102 @@ export default function HistoryPage() {
 
       pdf.addImage(imgData, "JPEG", 10, 10, imgWidth, imgHeight);
 
-      const filename = `prediccion_${selected.id}_${formatDate(
-        selected.fecha ?? selected.created_at,
+      const filename = `prediccion_${pred.id}_${formatDate(
+        pred.fecha ?? pred.created_at,
       )
         .replace(/\s/g, "_")
         .replace(/:/g, "-")}.pdf`;
 
-      pdf.save(filename);
+      const blob = pdf.output("blob");
+      return { blob, filename };
+    } finally {
+      if (tempContainer.parentNode) {
+        document.body.removeChild(tempContainer);
+      }
+    }
+  };
 
-      // Limpiar
-      document.body.removeChild(tempContainer);
-
+  const exportToPDF = async () => {
+    if (!selected) {
+      toast.error("No hay predicción seleccionada");
+      return;
+    }
+    try {
+      toast.loading("Generando PDF...");
+      const { blob, filename } = await generatePDFBlob(selected);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
       toast.dismiss();
       toast.success("PDF exportado exitosamente");
     } catch (error) {
       console.error("Error al exportar PDF:", error);
       toast.dismiss();
       toast.error("Error al exportar el PDF");
+    }
+  };
+
+  const sendEmailWithPDF = async () => {
+    if (!selected) return;
+    const email = emailInput.trim();
+    if (!email) {
+      toast.error("Ingresa un correo electrónico");
+      return;
+    }
+    if (!EMAIL_REGEX.test(email)) {
+      toast.error("Ingresa un correo electrónico válido");
+      return;
+    }
+
+    const webhookUrl = process.env.NEXT_PUBLIC_SEND_EMAIL_WEBHOOK;
+    if (!webhookUrl) {
+      toast.error("Webhook de envío no configurado");
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      toast.loading("Generando PDF y enviando...");
+      const { blob, filename } = await generatePDFBlob(selected);
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1] ?? "");
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          subject: `Reporte de Predicción #${selected.id} - ${diseaseName(selected.fase2_resumen?.clase_predicha ?? "Sin clasificar")}`,
+          title: `Reporte de Predicción #${selected.id}`,
+          pdf: base64,
+          filename,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      toast.dismiss();
+      toast.success("Reporte enviado por correo exitosamente");
+      setEmailModalOpen(false);
+      setEmailInput("");
+    } catch (error) {
+      console.error("Error al enviar correo:", error);
+      toast.dismiss();
+      toast.error("Error al enviar el reporte por correo");
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -421,33 +498,127 @@ export default function HistoryPage() {
             </svg>
             Volver al historial
           </button>
-          <button
-            onClick={exportToPDF}
-            className="flex items-center gap-2 text-sm font-medium px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEmailModalOpen(true)}
+              className="flex items-center gap-2 text-sm font-medium px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
             >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line
-                x1="12"
-                y1="19"
-                x2="12"
-                y2="5"
-              />
-              <polyline points="9 15 12 18 15 15" />
-            </svg>
-            Exportar a PDF
-          </button>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              Enviar por correo
+            </button>
+            <button
+              onClick={exportToPDF}
+              className="flex items-center gap-2 text-sm font-medium px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line
+                  x1="12"
+                  y1="19"
+                  x2="12"
+                  y2="5"
+                />
+                <polyline points="9 15 12 18 15 15" />
+              </svg>
+              Exportar a PDF
+            </button>
+          </div>
         </div>
+
+        {emailModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+              <div className="flex items-center justify-between p-4 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-800">
+                  Enviar reporte por correo
+                </h2>
+                <button
+                  onClick={() => {
+                    if (!sendingEmail) {
+                      setEmailModalOpen(false);
+                      setEmailInput("");
+                    }
+                  }}
+                  disabled={sendingEmail}
+                  className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                <p className="text-sm text-slate-600">
+                  Se generará el PDF del reporte y se enviará al correo que
+                  indiques.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Correo electrónico *
+                  </label>
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="ejemplo@correo.com"
+                    disabled={sendingEmail}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end p-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!sendingEmail) {
+                      setEmailModalOpen(false);
+                      setEmailInput("");
+                    }
+                  }}
+                  disabled={sendingEmail}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={sendEmailWithPDF}
+                  disabled={sendingEmail}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg disabled:opacity-50 flex items-center gap-2"
+                >
+                  {sendingEmail ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Generar y enviar"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Imagen con bounding boxes */}
