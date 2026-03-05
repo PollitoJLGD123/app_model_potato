@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function DashboardLayout({
@@ -11,14 +11,25 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
     // Verificar si hay token
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login");
+      return;
     }
+    setIsCheckingAuth(false);
   }, [router]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-green-50 to-emerald-50 text-gray-600">
+        Verificando sesión...
+      </div>
+    );
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -108,6 +119,30 @@ export default function DashboardLayout({
                 />
               </svg>
               <span className="font-medium">Evaluación Completa</span>
+            </Link>
+
+            <Link
+              href="/dashboard/modulos"
+              className={`flex items-center gap-3 px-6 py-3 transition-colors ${
+                pathname.startsWith("/dashboard/modulos")
+                  ? "bg-green-100 text-green-700 border-l-4 border-green-600"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 7h18M3 12h18M3 17h18"
+                />
+              </svg>
+              <span className="font-medium">Módulos</span>
             </Link>
           </nav>
 
