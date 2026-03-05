@@ -170,6 +170,25 @@ export default function EvaluationCompletePage() {
   const getModelMeta = (key: string) =>
     MODEL_DISPLAY[key] || { label: key, color: "slate" };
 
+  const formatApiError = (value: unknown): string | null => {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) {
+      const first = value[0];
+      if (typeof first === "string") return first;
+      if (first && typeof first === "object" && "msg" in first) {
+        const msg = (first as { msg?: unknown }).msg;
+        if (typeof msg === "string") return msg;
+      }
+      return null;
+    }
+    if (typeof value === "object" && "msg" in value) {
+      const msg = (value as { msg?: unknown }).msg;
+      if (typeof msg === "string") return msg;
+    }
+    return null;
+  };
+
   const getErrorMessage = (err: any): string => {
     const status = err?.response?.status;
     if (status === 401) return "Sesion expirada. Inicia sesion nuevamente.";
@@ -178,11 +197,14 @@ export default function EvaluationCompletePage() {
       return "Roboflow no respondio a tiempo. Intenta otra vez.";
     if (status === 502)
       return "Error del servicio de deteccion. Intenta mas tarde.";
-    return (
-      err?.response?.data?.detail ||
-      err?.response?.data?.message ||
-      "Error al evaluar la imagen. Intenta de nuevo."
-    );
+
+    const apiDetail = formatApiError(err?.response?.data?.detail);
+    if (apiDetail) return apiDetail;
+
+    const apiMessage = formatApiError(err?.response?.data?.message);
+    if (apiMessage) return apiMessage;
+
+    return "Error al evaluar la imagen. Intenta de nuevo.";
   };
 
   const handleSubmit = async () => {
@@ -499,29 +521,50 @@ export default function EvaluationCompletePage() {
                       <div>
                         <span className="text-slate-500">Mejor modelo:</span>
                         <p className="font-bold text-emerald-700">
-                          {getModelMeta(classificationResult.mejor_modelo_global).label}
+                          {
+                            getModelMeta(
+                              classificationResult.mejor_modelo_global,
+                            ).label
+                          }
                         </p>
                       </div>
                       <div>
                         <span className="text-slate-500">Confianza máx:</span>
                         <p className="font-bold text-slate-800">
-                          {(classificationResult.resumen_comparativo.confianza_maxima * 100).toFixed(2)}%
+                          {(
+                            classificationResult.resumen_comparativo
+                              .confianza_maxima * 100
+                          ).toFixed(2)}
+                          %
                         </p>
                       </div>
                       <div>
                         <span className="text-slate-500">Consenso:</span>
                         <p className="font-bold">
                           {classificationResult.resumen_comparativo.consenso ? (
-                            <span className="text-emerald-600">Sí - {getDiseaseName(classificationResult.resumen_comparativo.clase_consenso ?? "")}</span>
+                            <span className="text-emerald-600">
+                              Sí -{" "}
+                              {getDiseaseName(
+                                classificationResult.resumen_comparativo
+                                  .clase_consenso ?? "",
+                              )}
+                            </span>
                           ) : (
-                            <span className="text-amber-600">No hay consenso</span>
+                            <span className="text-amber-600">
+                              No hay consenso
+                            </span>
                           )}
                         </p>
                       </div>
                       <div>
                         <span className="text-slate-500">Más confiado:</span>
                         <p className="font-bold text-slate-800">
-                          {getModelMeta(classificationResult.resumen_comparativo.modelo_mas_confiado).label}
+                          {
+                            getModelMeta(
+                              classificationResult.resumen_comparativo
+                                .modelo_mas_confiado,
+                            ).label
+                          }
                         </p>
                       </div>
                     </div>
@@ -577,7 +620,10 @@ export default function EvaluationCompletePage() {
                                 {Object.entries(result.todas_predicciones)
                                   .sort(([, a], [, b]) => b - a)
                                   .map(([cls, prob]) => (
-                                    <div key={cls} className="flex items-center gap-2">
+                                    <div
+                                      key={cls}
+                                      className="flex items-center gap-2"
+                                    >
                                       <span className="text-[10px] text-slate-500 w-24 truncate">
                                         {getDiseaseName(cls)}
                                       </span>
@@ -605,10 +651,22 @@ export default function EvaluationCompletePage() {
                               <div className="grid grid-cols-4 gap-1.5 text-center">
                                 {(
                                   [
-                                    ["Acc", result.metricas_entrenamiento.accuracy],
-                                    ["Prec", result.metricas_entrenamiento.precision],
-                                    ["Rec", result.metricas_entrenamiento.recall],
-                                    ["F1", result.metricas_entrenamiento.f1_score],
+                                    [
+                                      "Acc",
+                                      result.metricas_entrenamiento.accuracy,
+                                    ],
+                                    [
+                                      "Prec",
+                                      result.metricas_entrenamiento.precision,
+                                    ],
+                                    [
+                                      "Rec",
+                                      result.metricas_entrenamiento.recall,
+                                    ],
+                                    [
+                                      "F1",
+                                      result.metricas_entrenamiento.f1_score,
+                                    ],
                                   ] as const
                                 ).map(([label, value]) => (
                                   <div

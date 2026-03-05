@@ -183,6 +183,12 @@ export default function DashboardLayout({
               Evaluación Completa
             </button>
             <button
+              onClick={() => router.push("/dashboard/realtime")}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/realtime")}`}
+            >
+              📹 Tiempo Real
+            </button>
+            <button
               onClick={() => router.push("/dashboard/recommendations")}
               className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/recommendations")}`}
             >
