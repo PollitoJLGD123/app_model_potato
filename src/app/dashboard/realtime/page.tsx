@@ -3,11 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Script from "next/script";
 import { toast } from "sonner";
-import { evaluationImage, evaluationRoboflow } from "@/service/evaluation";
+import {
+  evaluationImage,
+  evaluationRoboflow,
+  getSurcos,
+} from "@/service/evaluation";
 import {
   MultiModelEvaluationResult,
   RoboflowEvaluationResult,
   RoboflowPrediction,
+  Surco,
 } from "@/types/evaluation";
 
 // ── Roboflow inferencejs config ─────────────────────────────────────────────
@@ -211,9 +216,34 @@ export default function RealtimePage() {
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
 
+  const [surcos, setSurcos] = useState<Surco[]>([]);
+  const [selectedSurcoId, setSelectedSurcoId] = useState<number | null>(null);
+  const [loadingSurcos, setLoadingSurcos] = useState(true);
+
   const imageRef = useRef<HTMLImageElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // ── Cargar surcos al montar ────────────────────────────────────────────
+  useEffect(() => {
+    const loadSurcos = async () => {
+      try {
+        setLoadingSurcos(true);
+        const response = await getSurcos();
+        const data = response.data ?? [];
+        setSurcos(data);
+        if (data.length > 0) {
+          setSelectedSurcoId(data[0].id);
+        }
+      } catch (err) {
+        console.error("Error cargando surcos:", err);
+        toast.error("No se pudieron cargar los surcos");
+      } finally {
+        setLoadingSurcos(false);
+      }
+    };
+    loadSurcos();
+  }, []);
 
   // ── Limpieza al desmontar ──────────────────────────────────────────────
   useEffect(() => {
@@ -394,7 +424,10 @@ export default function RealtimePage() {
 
     try {
       setLoadingStep("step1");
-      const detectionResponse = await evaluationRoboflow(file);
+      const detectionResponse = await evaluationRoboflow(
+        file,
+        selectedSurcoId ?? undefined,
+      );
       setRoboflowResult(detectionResponse.data);
       const rbf = detectionResponse.data.roboflow;
 
@@ -617,6 +650,39 @@ export default function RealtimePage() {
                 )}
               </div>
 
+              {/* Selector de surco */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Surco (requerido para guardar)
+                </label>
+                {loadingSurcos ? (
+                  <p className="text-sm text-gray-500">Cargando surcos...</p>
+                ) : surcos.length > 0 ? (
+                  <select
+                    value={selectedSurcoId ?? ""}
+                    onChange={(e) =>
+                      setSelectedSurcoId(
+                        e.target.value ? parseInt(e.target.value, 10) : null,
+                      )
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">Selecciona un surco</option>
+                    {surcos.map((surco) => (
+                      <option key={surco.id} value={surco.id}>
+                        {surco.modulo_nombre} → {surco.lote_identificador} →
+                        Surco {surco.numero}
+                        {surco.descripcion ? ` (${surco.descripcion})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm text-amber-600">
+                    No hay surcos disponibles. Crea surcos antes de capturar.
+                  </p>
+                )}
+              </div>
+
               {/* Controles de cámara */}
               <div className="mt-4 flex gap-3">
                 {cameraPhase === "active" ? (
@@ -629,10 +695,18 @@ export default function RealtimePage() {
                     </button>
                     <button
                       onClick={takePhoto}
-                      disabled={loadingStep !== "idle"}
+                      disabled={
+                        loadingStep !== "idle" ||
+                        !selectedSurcoId ||
+                        surcos.length === 0
+                      }
                       className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
-                      {loadingStep !== "idle" ? stepMessage : "📷 Tomar Foto"}
+                      {loadingStep !== "idle"
+                        ? stepMessage
+                        : !selectedSurcoId
+                          ? "Selecciona un surco"
+                          : "📷 Tomar Foto"}
                     </button>
                   </>
                 ) : (
@@ -688,7 +762,10 @@ export default function RealtimePage() {
                   <button
                     onClick={takePhoto}
                     disabled={
-                      cameraPhase !== "active" || loadingStep !== "idle"
+                      cameraPhase !== "active" ||
+                      loadingStep !== "idle" ||
+                      !selectedSurcoId ||
+                      surcos.length === 0
                     }
                     className="flex-1 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
