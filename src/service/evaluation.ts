@@ -4,7 +4,9 @@ import {
   RoboflowEvaluationResponse,
 } from "@/types/evaluation";
 
-export const evaluationImage = async (image: File): Promise<EvaluationResponse> => {
+export const evaluationImage = async (
+  image: File,
+): Promise<EvaluationResponse> => {
   const formData = new FormData();
   formData.append("file", image);
 
@@ -15,14 +17,14 @@ export const evaluationImage = async (image: File): Promise<EvaluationResponse> 
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }
+    },
   );
 
   return response.data;
 };
 
 export const evaluationRoboflow = async (
-  image: File
+  image: File,
 ): Promise<RoboflowEvaluationResponse> => {
   const formData = new FormData();
   formData.append("file", image);
@@ -34,7 +36,7 @@ export const evaluationRoboflow = async (
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }
+    },
   );
 
   return response.data;

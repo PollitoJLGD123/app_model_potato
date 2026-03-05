@@ -22,8 +22,10 @@ type RenderBox = {
 export default function EvaluationCompletePage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [roboflowResult, setRoboflowResult] = useState<RoboflowEvaluationResult | null>(null);
-  const [classificationResult, setClassificationResult] = useState<LocalEvaluationResult | null>(null);
+  const [roboflowResult, setRoboflowResult] =
+    useState<RoboflowEvaluationResult | null>(null);
+  const [classificationResult, setClassificationResult] =
+    useState<LocalEvaluationResult | null>(null);
   const [roboflowMessage, setRoboflowMessage] = useState<string>("");
   const [loadingStep, setLoadingStep] = useState<LoadingStep>("idle");
   const [error, setError] = useState<string>("");
@@ -91,7 +93,12 @@ export default function EvaluationCompletePage() {
       return [];
     }
 
-    if (!naturalSize.width || !naturalSize.height || !displaySize.width || !displaySize.height) {
+    if (
+      !naturalSize.width ||
+      !naturalSize.height ||
+      !displaySize.width ||
+      !displaySize.height
+    ) {
       return [];
     }
 
@@ -131,8 +138,10 @@ export default function EvaluationCompletePage() {
     const status = err?.response?.status;
     if (status === 401) return "Sesion expirada. Inicia sesion nuevamente.";
     if (status === 413) return "La imagen supera el tamano maximo permitido.";
-    if (status === 504) return "Roboflow no respondio a tiempo. Intenta otra vez.";
-    if (status === 502) return "Error del servicio de deteccion. Intenta mas tarde.";
+    if (status === 504)
+      return "Roboflow no respondio a tiempo. Intenta otra vez.";
+    if (status === 502)
+      return "Error del servicio de deteccion. Intenta mas tarde.";
     return (
       err?.response?.data?.detail ||
       err?.response?.data?.message ||
@@ -185,25 +194,32 @@ export default function EvaluationCompletePage() {
     loadingStep === "step1"
       ? "Paso 1/2: detectando zonas con Roboflow..."
       : loadingStep === "step2"
-      ? "Paso 2/2: clasificando estado de la hoja..."
-      : "";
+        ? "Paso 2/2: clasificando estado de la hoja..."
+        : "";
 
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Evaluacion Completa</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          Evaluacion Completa
+        </h1>
         <p className="text-gray-600">
-          Paso 1: deteccion con Roboflow y cajas. Paso 2: clasificacion de enfermedad o estado saludable.
+          Paso 1: deteccion con Roboflow y cajas. Paso 2: clasificacion de
+          enfermedad o estado saludable.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Seleccionar Imagen</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            Seleccionar Imagen
+          </h2>
 
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              preview ? "border-green-300 bg-green-50" : "border-gray-300 hover:border-green-400"
+              preview
+                ? "border-green-300 bg-green-50"
+                : "border-gray-300 hover:border-green-400"
             }`}
             onClick={() => fileInputRef.current?.click()}
           >
@@ -217,7 +233,11 @@ export default function EvaluationCompletePage() {
 
             {preview ? (
               <div className="space-y-4">
-                <img src={preview} alt="Preview" className="max-h-64 mx-auto rounded-lg shadow-md" />
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="max-h-64 mx-auto rounded-lg shadow-md"
+                />
                 <p className="text-sm text-gray-600">{selectedImage?.name}</p>
                 <button
                   onClick={(e) => {
@@ -245,8 +265,12 @@ export default function EvaluationCompletePage() {
                   />
                 </svg>
                 <div>
-                  <p className="text-gray-700 font-medium">Haz clic para seleccionar una imagen</p>
-                  <p className="text-sm text-gray-500 mt-1">PNG, JPG, JPEG o WEBP hasta 10MB</p>
+                  <p className="text-gray-700 font-medium">
+                    Haz clic para seleccionar una imagen
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    PNG, JPG, JPEG o WEBP hasta 10MB
+                  </p>
                 </div>
               </div>
             )}
@@ -258,7 +282,9 @@ export default function EvaluationCompletePage() {
               disabled={!selectedImage || loadingStep !== "idle"}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loadingStep === "idle" ? "Iniciar Evaluacion de 2 Pasos" : stepMessage}
+              {loadingStep === "idle"
+                ? "Iniciar Evaluacion de 2 Pasos"
+                : stepMessage}
             </button>
 
             <button
@@ -277,7 +303,9 @@ export default function EvaluationCompletePage() {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-gray-800">Resultado de Evaluacion Completa</h2>
+          <h2 className="text-xl font-semibold text-gray-800">
+            Resultado de Evaluacion Completa
+          </h2>
 
           {preview ? (
             <div className="border border-gray-200 rounded-lg p-3">
@@ -327,15 +355,24 @@ export default function EvaluationCompletePage() {
 
           <div className="space-y-3">
             <div className="p-4 rounded-lg border bg-slate-50 border-slate-200">
-              <p className="text-sm font-semibold text-slate-700">Paso 1: Deteccion Roboflow</p>
+              <p className="text-sm font-semibold text-slate-700">
+                Paso 1: Deteccion Roboflow
+              </p>
               {roboflowResult ? (
                 <>
-                  <p className="text-sm text-slate-600 mt-1">Modelo: {roboflowResult.model_id}</p>
-                  <p className="text-sm text-slate-600 mt-1">Detecciones: {roboflowResult.predictions.length}</p>
-                  <p className="text-sm mt-1 text-slate-700">{roboflowMessage}</p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Modelo: {roboflowResult.model_id}
+                  </p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Detecciones: {roboflowResult.predictions.length}
+                  </p>
+                  <p className="text-sm mt-1 text-slate-700">
+                    {roboflowMessage}
+                  </p>
                   {!roboflowResult.has_matches && (
                     <p className="text-sm mt-2 text-blue-700">
-                      No hubo coincidencias en la deteccion. Se completo igualmente el paso 2.
+                      No hubo coincidencias en la deteccion. Se completo
+                      igualmente el paso 2.
                     </p>
                   )}
                 </>
@@ -345,19 +382,24 @@ export default function EvaluationCompletePage() {
             </div>
 
             <div className="p-4 rounded-lg border bg-emerald-50 border-emerald-200">
-              <p className="text-sm font-semibold text-emerald-700">Paso 2: Clasificacion de Enfermedad</p>
+              <p className="text-sm font-semibold text-emerald-700">
+                Paso 2: Clasificacion de Enfermedad
+              </p>
               {classificationResult ? (
                 <>
                   <p className="text-sm text-emerald-700 mt-1 font-semibold">
                     {getDiseaseName(classificationResult.clase_predicha)}
                   </p>
                   <p className="text-sm text-emerald-700 mt-1">
-                    Confianza: {(classificationResult.confianza * 100).toFixed(2)}%
+                    Confianza:{" "}
+                    {(classificationResult.confianza * 100).toFixed(2)}%
                   </p>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                     <div
                       className={`h-2 rounded-full ${getClassificationColor(classificationResult.clase_predicha)}`}
-                      style={{ width: `${classificationResult.confianza * 100}%` }}
+                      style={{
+                        width: `${classificationResult.confianza * 100}%`,
+                      }}
                     />
                   </div>
                 </>

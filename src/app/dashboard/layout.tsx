@@ -47,7 +47,7 @@ export default function DashboardLayout({
             <Link
               href="/dashboard"
               className={`flex items-center gap-3 px-6 py-3 transition-colors ${isActive(
-                "/dashboard"
+                "/dashboard",
               )}`}
             >
               <svg
@@ -69,7 +69,7 @@ export default function DashboardLayout({
             <Link
               href="/dashboard/evaluation"
               className={`flex items-center gap-3 px-6 py-3 transition-colors ${isActive(
-                "/dashboard/evaluation"
+                "/dashboard/evaluation",
               )}`}
             >
               <svg
@@ -91,7 +91,7 @@ export default function DashboardLayout({
             <Link
               href="/dashboard/evaluation-complete"
               className={`flex items-center gap-3 px-6 py-3 transition-colors ${isActive(
-                "/dashboard/evaluation-complete"
+                "/dashboard/evaluation-complete",
               )}`}
             >
               <svg
