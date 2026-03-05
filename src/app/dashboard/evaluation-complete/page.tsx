@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { evaluationImage, evaluationRoboflow } from "@/service/evaluation";
 import {
-  LocalEvaluationResult,
+  MultiModelEvaluationResult,
+  ModelResult,
   RoboflowEvaluationResult,
   RoboflowPrediction,
 } from "@/types/evaluation";
@@ -28,7 +29,7 @@ export default function EvaluationCompletePage() {
   const [roboflowResult, setRoboflowResult] =
     useState<RoboflowEvaluationResult | null>(null);
   const [classificationResult, setClassificationResult] =
-    useState<LocalEvaluationResult | null>(null);
+    useState<MultiModelEvaluationResult | null>(null);
   const [roboflowMessage, setRoboflowMessage] = useState<string>("");
   const [loadingStep, setLoadingStep] = useState<LoadingStep>("idle");
   const [error, setError] = useState<string>("");
@@ -110,8 +111,10 @@ export default function EvaluationCompletePage() {
     return "#16a34a";
   };
 
+  const roboflow = roboflowResult?.roboflow ?? null;
+
   const renderBoxes: RenderBox[] = useMemo(() => {
-    if (!roboflowResult || !roboflowResult.predictions.length) {
+    if (!roboflow || !roboflow.predictions.length) {
       return [];
     }
 
@@ -127,7 +130,7 @@ export default function EvaluationCompletePage() {
     const scaleX = displaySize.width / naturalSize.width;
     const scaleY = displaySize.height / naturalSize.height;
 
-    return roboflowResult.predictions.map((prediction: RoboflowPrediction) => ({
+    return roboflow.predictions.map((prediction: RoboflowPrediction) => ({
       left: (prediction.x - prediction.width / 2) * scaleX,
       top: (prediction.y - prediction.height / 2) * scaleY,
       width: prediction.width * scaleX,
@@ -135,7 +138,7 @@ export default function EvaluationCompletePage() {
       label: prediction.class,
       confidence: prediction.confidence,
     }));
-  }, [roboflowResult, naturalSize, displaySize]);
+  }, [roboflow, naturalSize, displaySize]);
 
   const getDiseaseName = (className: string): string => {
     const names: { [key: string]: string } = {
@@ -147,14 +150,25 @@ export default function EvaluationCompletePage() {
   };
 
   const getClassificationColor = (className: string): string => {
-    if (className.includes("healthy")) {
-      return "bg-green-600";
-    }
-    if (className.includes("Early")) {
-      return "bg-yellow-500";
-    }
+    if (className.includes("healthy")) return "bg-green-600";
+    if (className.includes("Early")) return "bg-yellow-500";
     return "bg-red-600";
   };
+
+  const getClassificationBorder = (className: string): string => {
+    if (className.includes("healthy")) return "border-green-300 bg-green-50";
+    if (className.includes("Early")) return "border-yellow-300 bg-yellow-50";
+    return "border-red-300 bg-red-50";
+  };
+
+  const MODEL_DISPLAY: Record<string, { label: string; color: string }> = {
+    efficient: { label: "EfficientNet", color: "emerald" },
+    resnet: { label: "ResNet", color: "blue" },
+    mobilevit: { label: "MobileViT", color: "violet" },
+  };
+
+  const getModelMeta = (key: string) =>
+    MODEL_DISPLAY[key] || { label: key, color: "slate" };
 
   const getErrorMessage = (err: any): string => {
     const status = err?.response?.status;
@@ -187,11 +201,9 @@ export default function EvaluationCompletePage() {
       const detectionResponse = await evaluationRoboflow(selectedImage);
       setRoboflowResult(detectionResponse.data);
 
-      // Si Roboflow no detecta ninguna hoja, mostramos alerta y detenemos el flujo.
-      if (
-        !detectionResponse.data.has_matches ||
-        !detectionResponse.data.predictions.length
-      ) {
+      const rbf = detectionResponse.data.roboflow;
+
+      if (!rbf.has_matches || !rbf.predictions.length) {
         const message =
           detectionResponse.message ||
           "No se detectó ninguna hoja en la imagen. Por favor sube una imagen donde la hoja sea claramente visible.";
@@ -206,7 +218,7 @@ export default function EvaluationCompletePage() {
 
       setLoadingStep("step2");
       const classificationResponse = await evaluationImage(selectedImage);
-      setClassificationResult(classificationResponse.data);
+      setClassificationResult(classificationResponse.data.clasificacion);
     } catch (err: any) {
       setError(getErrorMessage(err));
     } finally {
@@ -444,18 +456,18 @@ export default function EvaluationCompletePage() {
               <p className="text-sm font-semibold text-slate-700">
                 Paso 1: Deteccion Cuadros Delimitadores
               </p>
-              {roboflowResult ? (
+              {roboflow ? (
                 <>
                   <p className="text-sm text-slate-600 mt-1">
-                    Modelo: {roboflowResult.model_id}
+                    Modelo: {roboflow.model_id}
                   </p>
                   <p className="text-sm text-slate-600 mt-1">
-                    Detecciones: {roboflowResult.predictions.length}
+                    Detecciones: {roboflow.predictions.length}
                   </p>
                   <p className="text-sm mt-1 text-slate-700">
                     {roboflowMessage}
                   </p>
-                  {!roboflowResult.has_matches && (
+                  {!roboflow.has_matches && (
                     <p className="text-sm mt-2 text-blue-700">
                       No se detectó ninguna hoja en la imagen. No se ejecutó la
                       clasificación.
@@ -471,27 +483,152 @@ export default function EvaluationCompletePage() {
               <p className="text-sm font-semibold text-emerald-700">
                 Paso 2: Clasificacion de Enfermedad
               </p>
-              {roboflowResult && !roboflowResult.has_matches ? (
+              {roboflow && !roboflow.has_matches ? (
                 <p className="text-sm text-slate-600 mt-1">
                   No se realizó la clasificación porque no se detectó ninguna
                   hoja válida en la imagen.
                 </p>
               ) : classificationResult ? (
                 <>
-                  <p className="text-sm text-emerald-700 mt-1 font-semibold">
-                    {getDiseaseName(classificationResult.clase_predicha)}
-                  </p>
-                  <p className="text-sm text-emerald-700 mt-1">
-                    Confianza:{" "}
-                    {(classificationResult.confianza * 100).toFixed(2)}%
-                  </p>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                    <div
-                      className={`h-2 rounded-full ${getClassificationColor(classificationResult.clase_predicha)}`}
-                      style={{
-                        width: `${classificationResult.confianza * 100}%`,
-                      }}
-                    />
+                  {/* Resumen comparativo */}
+                  <div className="mt-3 p-3 rounded-lg border border-emerald-200 bg-white">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                      Resumen Comparativo
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-slate-500">Mejor modelo:</span>
+                        <p className="font-bold text-emerald-700">
+                          {getModelMeta(classificationResult.mejor_modelo_global).label}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Confianza máx:</span>
+                        <p className="font-bold text-slate-800">
+                          {(classificationResult.resumen_comparativo.confianza_maxima * 100).toFixed(2)}%
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Consenso:</span>
+                        <p className="font-bold">
+                          {classificationResult.resumen_comparativo.consenso ? (
+                            <span className="text-emerald-600">Sí - {getDiseaseName(classificationResult.resumen_comparativo.clase_consenso ?? "")}</span>
+                          ) : (
+                            <span className="text-amber-600">No hay consenso</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Más confiado:</span>
+                        <p className="font-bold text-slate-800">
+                          {getModelMeta(classificationResult.resumen_comparativo.modelo_mas_confiado).label}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjetas por modelo */}
+                  <div className="mt-3 space-y-3">
+                    {Object.entries(classificationResult.resultados).map(
+                      ([key, result]) => {
+                        const meta = getModelMeta(key);
+                        const isBest =
+                          key === classificationResult.mejor_modelo_global;
+                        return (
+                          <div
+                            key={key}
+                            className={`p-3 rounded-lg border ${
+                              isBest
+                                ? getClassificationBorder(result.clase_predicha)
+                                : "border-slate-200 bg-white"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                {meta.label}
+                                {isBest && (
+                                  <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded-full">
+                                    Mejor
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-600">
+                                {(result.confianza * 100).toFixed(2)}%
+                              </span>
+                            </div>
+                            <p className="text-sm font-semibold text-slate-800">
+                              {getDiseaseName(result.clase_predicha)}
+                            </p>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${getClassificationColor(result.clase_predicha)}`}
+                                style={{
+                                  width: `${result.confianza * 100}%`,
+                                }}
+                              />
+                            </div>
+
+                            {/* Distribución de predicciones */}
+                            <div className="mt-3 pt-2 border-t border-slate-100">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                Distribución de probabilidades
+                              </p>
+                              <div className="space-y-1">
+                                {Object.entries(result.todas_predicciones)
+                                  .sort(([, a], [, b]) => b - a)
+                                  .map(([cls, prob]) => (
+                                    <div key={cls} className="flex items-center gap-2">
+                                      <span className="text-[10px] text-slate-500 w-24 truncate">
+                                        {getDiseaseName(cls)}
+                                      </span>
+                                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full ${getClassificationColor(cls)}`}
+                                          style={{ width: `${prob * 100}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[10px] tabular-nums font-medium text-slate-600 w-14 text-right">
+                                        {prob < 0.0001
+                                          ? "<0.01%"
+                                          : `${(prob * 100).toFixed(2)}%`}
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+
+                            {/* Métricas de entrenamiento */}
+                            <div className="mt-3 pt-2 border-t border-slate-100">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                Métricas de entrenamiento
+                              </p>
+                              <div className="grid grid-cols-4 gap-1.5 text-center">
+                                {(
+                                  [
+                                    ["Acc", result.metricas_entrenamiento.accuracy],
+                                    ["Prec", result.metricas_entrenamiento.precision],
+                                    ["Rec", result.metricas_entrenamiento.recall],
+                                    ["F1", result.metricas_entrenamiento.f1_score],
+                                  ] as const
+                                ).map(([label, value]) => (
+                                  <div
+                                    key={label}
+                                    className="bg-slate-50 rounded px-1 py-1"
+                                  >
+                                    <p className="text-[9px] text-slate-400 font-medium">
+                                      {label}
+                                    </p>
+                                    <p className="text-xs font-bold text-slate-700 tabular-nums">
+                                      {(value * 100).toFixed(1)}%
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      },
+                    )}
                   </div>
                 </>
               ) : (

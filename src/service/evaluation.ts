@@ -1,16 +1,17 @@
 import api from "@/lib/axios";
 import {
-  EvaluationResponse,
+  MultiModelEvaluationResponse,
   RoboflowEvaluationResponse,
+  PredictionHistoryResponse,
 } from "@/types/evaluation";
 
 export const evaluationImage = async (
   image: File,
-): Promise<EvaluationResponse> => {
+): Promise<MultiModelEvaluationResponse> => {
   const formData = new FormData();
   formData.append("file", image);
 
-  const response = await api.post<EvaluationResponse>(
+  const response = await api.post<MultiModelEvaluationResponse>(
     "/evaluation/evaluate",
     formData,
     {
@@ -41,3 +42,10 @@ export const evaluationRoboflow = async (
 
   return response.data;
 };
+
+export const getPredictionHistory =
+  async (): Promise<PredictionHistoryResponse> => {
+    const response =
+      await api.get<PredictionHistoryResponse>("/evaluation/history");
+    return response.data;
+  };

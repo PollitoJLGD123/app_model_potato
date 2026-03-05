@@ -1,17 +1,44 @@
-export interface LocalEvaluationResult {
+// ── Resultado individual de un modelo ────────────────────────────
+export interface ModelResult {
+  modelo: string;
   clase_predicha: string;
   confianza: number;
-  todas_predicciones: {
-    [key: string]: number;
+  todas_predicciones: { [key: string]: number };
+  metricas_entrenamiento: {
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1_score: number;
   };
 }
 
-export interface LocalEvaluationResponse {
-  data: LocalEvaluationResult;
+// ── Resumen comparativo entre modelos ───────────────────────────
+export interface ComparativeSummary {
+  consenso: boolean;
+  clase_consenso: string | null;
+  modelo_mas_confiado: string;
+  confianza_maxima: number;
+}
+
+// ── Respuesta multi-modelo del /evaluation/evaluate ─────────────
+export interface MultiModelEvaluationResult {
+  mejor_modelo_global: string;
+  resultados: { [modelName: string]: ModelResult };
+  resumen_comparativo: ComparativeSummary;
+}
+
+export interface MultiModelEvaluationData {
+  clasificacion: MultiModelEvaluationResult;
+  prediccion: PrediccionRecord;
+}
+
+export interface MultiModelEvaluationResponse {
+  data: MultiModelEvaluationData;
   message: string;
   status: "success" | "error";
 }
 
+// ── Roboflow ────────────────────────────────────────────────────
 export interface RoboflowPrediction {
   x: number;
   y: number;
@@ -23,11 +50,48 @@ export interface RoboflowPrediction {
   detection_id: string | null;
 }
 
-export interface RoboflowEvaluationResult {
+export interface RoboflowDetection {
   source: "file" | "url";
   model_id: string;
   predictions: RoboflowPrediction[];
   has_matches: boolean;
+}
+
+export interface Fase1Resumen {
+  has_matches: boolean;
+  total_detecciones: number;
+  clases_detectadas: string[];
+}
+
+export interface Fase2Resumen {
+  modelo: string;
+  clase_predicha: string;
+  confianza: number;
+}
+
+export interface PrediccionRecord {
+  id: number;
+  surco_id: number | null;
+  usuario_id: number;
+  imagen_url: string;
+  fase1_resumen: Fase1Resumen | null;
+  fase1_payload: RoboflowDetection | null;
+  fase2_resumen: Fase2Resumen | null;
+  fase2_payload: MultiModelEvaluationResult | null;
+  fecha: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PredictionHistoryResponse {
+  data: PrediccionRecord[];
+  status: "success" | "error";
+  message: string;
+}
+
+export interface RoboflowEvaluationResult {
+  prediccion: PrediccionRecord;
+  roboflow: RoboflowDetection;
 }
 
 export interface RoboflowEvaluationResponse {
@@ -35,7 +99,3 @@ export interface RoboflowEvaluationResponse {
   message: string;
   status: "success" | "error";
 }
-
-// Backward compatible aliases used by the current evaluation page.
-export type EvaluationResult = LocalEvaluationResult;
-export type EvaluationResponse = LocalEvaluationResponse;
