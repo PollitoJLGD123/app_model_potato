@@ -1,8 +1,17 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import {
+  ChevronDown,
+  ChevronRight,
+  Layers,
+  Leaf,
+  Map,
+  Menu,
+} from "@/components/ui-icons";
+import { getLotesByModulo, getModulos, getSurcosByLote } from "@/service/hierarchy";
+import { Lote, Modulo, Surco } from "@/types/hierarchy";
 
 export default function DashboardLayout({
   children,
@@ -12,6 +21,12 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [modulos, setModulos] = useState<Modulo[]>([]);
+  const [lotesDeModulo, setLotesDeModulo] = useState<Record<string, Lote[]>>({});
+  const [surcosDeLote, setSurcosDeLote] = useState<Record<string, Surco[]>>({});
+  const [expandedModulos, setExpandedModulos] = useState<Record<string, boolean>>({});
+  const [expandedLotes, setExpandedLotes] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Verificar si hay token
@@ -23,6 +38,22 @@ export default function DashboardLayout({
     setIsCheckingAuth(false);
   }, [router]);
 
+  useEffect(() => {
+    const loadModulos = async () => {
+      if (isCheckingAuth || pathname === "/dashboard") {
+        return;
+      }
+      try {
+        const res = await getModulos();
+        setModulos(res.data || []);
+      } catch {
+        setModulos([]);
+      }
+    };
+
+    loadModulos();
+  }, [isCheckingAuth, pathname]);
+
   if (isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-green-50 to-emerald-50 text-gray-600">
@@ -31,146 +62,199 @@ export default function DashboardLayout({
     );
   }
 
+  // /dashboard ya dibuja su propio header+sidebar unificado.
+  if (pathname === "/dashboard") {
+    return <>{children}</>;
+  }
+
+  const fetchLotes = async (moduloId: number) => {
+    try {
+      const res = await getLotesByModulo(moduloId.toString());
+      setLotesDeModulo((prev) => ({ ...prev, [moduloId]: res.data || [] }));
+    } catch {
+      setLotesDeModulo((prev) => ({ ...prev, [moduloId]: [] }));
+    }
+  };
+
+  const fetchSurcos = async (moduloId: number, loteId: number) => {
+    try {
+      const res = await getSurcosByLote(moduloId.toString(), loteId.toString());
+      setSurcosDeLote((prev) => ({ ...prev, [loteId]: res.data || [] }));
+    } catch {
+      setSurcosDeLote((prev) => ({ ...prev, [loteId]: [] }));
+    }
+  };
+
+  const toggleModulo = (id: number) => {
+    setExpandedModulos((prev) => ({ ...prev, [id]: !prev[id] }));
+    if (!expandedModulos[id]) {
+      fetchLotes(id);
+    }
+  };
+
+  const toggleLote = (moduloId: number, loteId: number) => {
+    setExpandedLotes((prev) => ({ ...prev, [loteId]: !prev[loteId] }));
+    if (!expandedLotes[loteId]) {
+      fetchSurcos(moduloId, loteId);
+    }
+  };
+
+  const isActive = (path: string) =>
+    pathname === path
+      ? "bg-emerald-100 text-emerald-700"
+      : "text-slate-700 hover:bg-slate-100";
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     router.push("/login");
   };
 
-  const isActive = (path: string) => {
-    return pathname === path
-      ? "bg-green-100 text-green-700 border-l-4 border-green-600"
-      : "text-gray-700 hover:bg-gray-50";
-  };
-
   return (
-    <div className="min-h-screen bg-linear-to-br from-green-50 to-emerald-50">
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-lg min-h-screen fixed left-0 top-0">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800">
-              Sistema de Detección
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">Tizón Tardío</p>
+    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 selection:bg-emerald-200 flex flex-col">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm shrink-0">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <button
+              className="lg:hidden p-2 rounded-md text-slate-500 hover:bg-slate-100"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
+              <Menu size={20} />
+            </button>
+            <button
+              className="flex items-center space-x-2"
+              onClick={() => router.push("/dashboard")}
+            >
+              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
+                <Leaf size={20} />
+              </div>
+              <span className="font-bold text-xl text-slate-800 tracking-tight">
+                Agro<span className="text-emerald-600">Vision</span>
+              </span>
+            </button>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-2 rounded-md"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)] relative">
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-slate-900/50 z-10 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
+        <aside
+          className={`w-72 bg-white border-r border-slate-200 shrink-0 flex flex-col transition-all h-full ${isSidebarOpen ? "block absolute z-20 shadow-xl" : "hidden lg:block"} lg:relative sticky top-0`}
+        >
+          <div className="p-3 border-b border-slate-200 bg-white space-y-1">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard")}`}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => router.push("/dashboard/evaluation")}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/evaluation")}`}
+            >
+              Evaluación
+            </button>
+            <button
+              onClick={() => router.push("/dashboard/evaluation-complete")}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/evaluation-complete")}`}
+            >
+              Evaluación Completa
+            </button>
           </div>
 
-          <nav className="mt-6">
-            <Link
-              href="/dashboard"
-              className={`flex items-center gap-3 px-6 py-3 transition-colors ${isActive(
-                "/dashboard",
-              )}`}
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
-              <span className="font-medium">Dashboard</span>
-            </Link>
+          <div className="p-4 border-b border-slate-100 bg-slate-50">
+            <h2 className="font-bold text-slate-800 text-sm tracking-wide uppercase flex items-center">
+              <Map
+                size={16}
+                className="mr-2 text-emerald-600"
+              />
+              Jerarquía Finca
+            </h2>
+            <div className="mt-3 max-h-[45vh] overflow-y-auto space-y-1">
+              {modulos.map((modulo) => {
+                const lotes = lotesDeModulo[modulo.id] || [];
+                const isModuloExpanded = expandedModulos[modulo.id];
 
-            <Link
-              href="/dashboard/evaluation"
-              className={`flex items-center gap-3 px-6 py-3 transition-colors ${isActive(
-                "/dashboard/evaluation",
-              )}`}
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <span className="font-medium">Evaluación</span>
-            </Link>
+                return (
+                  <div key={modulo.id} className="text-sm">
+                    <div className="flex items-center justify-between p-2 rounded-md hover:bg-slate-100">
+                      <button
+                        onClick={() => router.push("/dashboard")}
+                        className="text-left truncate text-slate-700"
+                      >
+                        {modulo.nombre}
+                      </button>
+                      <button
+                        onClick={() => toggleModulo(modulo.id)}
+                        className="p-1 rounded hover:bg-slate-200"
+                      >
+                        {isModuloExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </button>
+                    </div>
 
-            <Link
-              href="/dashboard/evaluation-complete"
-              className={`flex items-center gap-3 px-6 py-3 transition-colors ${isActive(
-                "/dashboard/evaluation-complete",
-              )}`}
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 9l2 2 4-4"
-                />
-              </svg>
-              <span className="font-medium">Evaluación Completa</span>
-            </Link>
+                    {isModuloExpanded && (
+                      <div className="ml-4 pl-3 border-l-2 border-slate-100 space-y-1 mt-1">
+                        {lotes.length === 0 && <p className="text-xs text-slate-400 py-1 italic">Sin lotes</p>}
+                        {lotes.map((lote) => {
+                          const surcos = surcosDeLote[lote.id] || [];
+                          const isLoteExpanded = expandedLotes[lote.id];
 
-            <Link
-              href="/dashboard/modulos"
-              className={`flex items-center gap-3 px-6 py-3 transition-colors ${
-                pathname.startsWith("/dashboard/modulos")
-                  ? "bg-green-100 text-green-700 border-l-4 border-green-600"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 7h18M3 12h18M3 17h18"
-                />
-              </svg>
-              <span className="font-medium">Módulos</span>
-            </Link>
-          </nav>
+                          return (
+                            <div key={lote.id}>
+                              <div className="flex items-center justify-between p-2 rounded-md hover:bg-slate-100">
+                                <button
+                                  onClick={() => router.push("/dashboard")}
+                                  className="text-left truncate text-slate-600 flex items-center"
+                                >
+                                  <Layers size={12} className="mr-2" />
+                                  {lote.identificador}
+                                </button>
+                                <button
+                                  onClick={() => toggleLote(modulo.id, lote.id)}
+                                  className="p-1 rounded hover:bg-slate-200"
+                                >
+                                  {isLoteExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                </button>
+                              </div>
 
-          <div className="absolute bottom-0 w-full p-6 border-t border-gray-200">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              <span className="font-medium">Cerrar Sesión</span>
-            </button>
+                              {isLoteExpanded && (
+                                <div className="ml-4 pl-3 border-l-2 border-slate-100 space-y-1 mt-1">
+                                  {surcos.length === 0 && <p className="text-xs text-slate-400 py-1 italic">Sin surcos</p>}
+                                  {surcos.map((surco) => (
+                                    <button
+                                      key={surco.id}
+                                      onClick={() => router.push("/dashboard")}
+                                      className="w-full text-left p-2 rounded-md hover:bg-slate-100 text-slate-500"
+                                    >
+                                      Surco {surco.numero}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </aside>
 
-        {/* Contenido principal */}
-        <main className="flex-1 ml-64">{children}</main>
+        <main className="flex-1 overflow-y-auto w-full">{children}</main>
       </div>
     </div>
   );
