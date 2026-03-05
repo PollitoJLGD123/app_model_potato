@@ -9,7 +9,8 @@ import {
   ModelResult,
   MultiModelEvaluationResult,
 } from "@/types/evaluation";
-import html2pdf from "html2pdf.js";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const ZOOM_OPTIONS = [1, 2, 3] as const;
 
@@ -33,13 +34,15 @@ function modelLabel(key: string) {
   return MODEL_LABELS[key] ?? key;
 }
 
-function classColor(cls: string) {
+function classColor(cls: string | null | undefined) {
+  if (!cls) return "bg-gray-600";
   if (cls.includes("healthy")) return "bg-green-600";
   if (cls.includes("Early")) return "bg-amber-500";
   return "bg-red-600";
 }
 
-function classBadge(cls: string) {
+function classBadge(cls: string | null | undefined) {
+  if (!cls) return "bg-gray-100 text-gray-800";
   if (cls.includes("healthy")) return "bg-green-100 text-green-800";
   if (cls.includes("Early")) return "bg-amber-100 text-amber-800";
   return "bg-red-100 text-red-800";
@@ -82,32 +85,232 @@ export default function HistoryPage() {
 
   const imageRef = useRef<HTMLImageElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const pdfRef = useRef<HTMLDivElement>(null);
 
   const exportToPDF = async () => {
-    if (!pdfRef.current || !selected) {
-      toast.error("No hay contenido para exportar");
+    if (!selected) {
+      toast.error("No hay predicción seleccionada");
       return;
     }
 
     try {
-      const element = pdfRef.current;
-      const opt = {
-        margin: 10,
-        filename: `prediccion_${selected.id}_${formatDate(
-          selected.fecha ?? selected.created_at,
-        )
-          .replace(/\s/g, "_")
-          .replace(/:/g, "-")}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
-      };
+      toast.loading("Generando PDF...");
 
-      html2pdf().set(opt).from(element).save();
+      // Crear contenedor temporal
+      const tempContainer = document.createElement("div");
+      tempContainer.style.position = "absolute";
+      tempContainer.style.top = "-9999px";
+      tempContainer.style.left = "-9999px";
+      tempContainer.style.width = "800px";
+      tempContainer.style.backgroundColor = "#ffffff";
+      tempContainer.style.fontFamily = "Arial, sans-serif";
+      tempContainer.style.padding = "40px";
+      tempContainer.style.color = "#000";
+
+      const diagnosis = selected.fase2_resumen?.clase_predicha ?? "Sin clasificar";
+      const confidence = selected.fase2_resumen?.confianza ?? 0;
+      const mejor_modelo = selected.fase2_resumen?.modelo ?? "N/A";
+
+      // Contenedor de imagen
+      const imgContainer = document.createElement("div");
+      imgContainer.style.textAlign = "center";
+      imgContainer.style.marginBottom = "30px";
+
+      const img = document.createElement("img");
+      img.src = selected.imagen_url;
+      img.style.maxWidth = "100%";
+      img.style.maxHeight = "250px";
+      img.style.borderRadius = "8px";
+      img.style.border = "1px solid #ddd";
+      img.crossOrigin = "anonymous";
+      imgContainer.appendChild(img);
+      tempContainer.appendChild(imgContainer);
+
+      // Encabezado
+      const header = document.createElement("div");
+      header.style.borderBottom = "3px solid #059669";
+      header.style.paddingBottom = "20px";
+      header.style.marginBottom = "25px";
+
+      const title = document.createElement("h1");
+      title.textContent = "REPORTE DE PREDICCIÓN";
+      title.style.fontSize = "24px";
+      title.style.fontWeight = "bold";
+      title.style.margin = "0 0 8px 0";
+      title.style.color = "#059669";
+      header.appendChild(title);
+
+      const meta = document.createElement("p");
+      meta.textContent = `ID: #${selected.id} | Fecha: ${formatDate(
+        selected.fecha ?? selected.created_at,
+      )}`;
+      meta.style.fontSize = "12px";
+      meta.style.color = "#666";
+      meta.style.margin = "0";
+      header.appendChild(meta);
+      tempContainer.appendChild(header);
+
+      // Fase 1
+      const fase1 = document.createElement("div");
+      fase1.style.marginBottom = "25px";
+      fase1.style.padding = "15px";
+      fase1.style.backgroundColor = "#f0fdf4";
+      fase1.style.border = "1px solid #bbf7d0";
+      fase1.style.borderRadius = "6px";
+
+      const fase1Title = document.createElement("h2");
+      fase1Title.textContent = "FASE 1: DETECCIÓN (Roboflow)";
+      fase1Title.style.fontSize = "14px";
+      fase1Title.style.fontWeight = "bold";
+      fase1Title.style.margin = "0 0 12px 0";
+      fase1Title.style.color = "#15803d";
+      fase1.appendChild(fase1Title);
+
+      if (selected.fase1_resumen) {
+        const f1Content = document.createElement("div");
+        f1Content.style.fontSize = "13px";
+        f1Content.style.lineHeight = "1.8";
+
+        const hasMatches = selected.fase1_resumen.has_matches;
+        const detections = selected.fase1_resumen.total_detecciones;
+        const clases = selected.fase1_resumen.clases_detectadas
+          .map((c) => diseaseName(c))
+          .join(", ");
+
+        f1Content.innerHTML = `
+          <div style="margin-bottom: 8px"><strong>Estado:</strong> ${hasMatches ? "✓ Detecciones encontradas" : "✓ Sin detecciones"}</div>
+          <div style="margin-bottom: 8px"><strong>Total:</strong> ${detections} objetos detectados</div>
+          ${clases ? `<div style="margin-bottom: 8px"><strong>Clases:</strong> ${clases}</div>` : ""}
+          <div><strong>Modelo:</strong> ${selected.fase1_payload?.model_id || "N/A"}</div>
+        `;
+        fase1.appendChild(f1Content);
+      }
+      tempContainer.appendChild(fase1);
+
+      // Fase 2
+      const fase2 = document.createElement("div");
+      fase2.style.marginBottom = "25px";
+      fase2.style.padding = "15px";
+      fase2.style.backgroundColor = "#fef3c7";
+      fase2.style.border = "1px solid #fcd34d";
+      fase2.style.borderRadius = "6px";
+
+      const fase2Title = document.createElement("h2");
+      fase2Title.textContent = "FASE 2: DIAGNÓSTICO";
+      fase2Title.style.fontSize = "14px";
+      fase2Title.style.fontWeight = "bold";
+      fase2Title.style.margin = "0 0 12px 0";
+      fase2Title.style.color = "#92400e";
+      fase2.appendChild(fase2Title);
+
+      const f2Content = document.createElement("div");
+      f2Content.style.fontSize = "13px";
+      f2Content.style.lineHeight = "1.8";
+
+      f2Content.innerHTML = `
+        <div style="margin-bottom: 8px"><strong>Diagnóstico:</strong> ${diseaseName(diagnosis)}</div>
+        <div style="margin-bottom: 8px"><strong>Confianza:</strong> ${(confidence * 100).toFixed(2)}%</div>
+        <div><strong>Mejor Modelo:</strong> ${modelLabel(mejor_modelo)}</div>
+      `;
+      fase2.appendChild(f2Content);
+      tempContainer.appendChild(fase2);
+
+      // Métricas si existe fase2 payload
+      if (selected.fase2_payload) {
+        const metricas = document.createElement("div");
+        metricas.style.padding = "15px";
+        metricas.style.backgroundColor = "#f3f4f6";
+        metricas.style.border = "1px solid #d1d5db";
+        metricas.style.borderRadius = "6px";
+        metricas.style.fontSize = "11px";
+
+        const metricasTitle = document.createElement("h3");
+        metricasTitle.textContent = "COMPARATIVA DE MODELOS";
+        metricasTitle.style.fontSize = "13px";
+        metricasTitle.style.fontWeight = "bold";
+        metricasTitle.style.margin = "0 0 10px 0";
+        metricasTitle.style.color = "#374151";
+        metricas.appendChild(metricasTitle);
+
+        const modelsDiv = document.createElement("div");
+        modelsDiv.style.lineHeight = "2";
+
+        const fase2Payload = selected.fase2_payload;
+        Object.entries(fase2Payload.resultados).forEach(
+          ([key, r]: [string, ModelResult]) => {
+            const isBest = key === fase2Payload.mejor_modelo_global;
+            const modelRow = document.createElement("div");
+            modelRow.style.marginBottom = "8px";
+            modelRow.style.padding = "8px";
+            modelRow.style.backgroundColor = isBest ? "#dbeafe" : "#fff";
+            modelRow.style.border = isBest ? "1px solid #0ea5e9" : "1px solid #e5e7eb";
+            modelRow.style.borderRadius = "4px";
+
+            modelRow.innerHTML = `
+              <div style="font-weight: bold; margin-bottom: 4px">
+                ${modelLabel(key)} ${isBest ? " ⭐ (Mejor)" : ""}
+              </div>
+              <div style="font-size: 11px; color: #666">
+                Confianza: ${(r.confianza * 100).toFixed(2)}% | 
+                Predicción: ${diseaseName(r.clase_predicha)}
+              </div>
+              <div style="font-size: 10px; color: #999; margin-top: 4px">
+                Acc: ${(r.metricas_entrenamiento.accuracy * 100).toFixed(1)}% | 
+                Prec: ${(r.metricas_entrenamiento.precision * 100).toFixed(1)}% | 
+                Rec: ${(r.metricas_entrenamiento.recall * 100).toFixed(1)}% | 
+                F1: ${(r.metricas_entrenamiento.f1_score * 100).toFixed(1)}%
+              </div>
+            `;
+            modelsDiv.appendChild(modelRow);
+          },
+        );
+
+        metricas.appendChild(modelsDiv);
+        tempContainer.appendChild(metricas);
+      }
+
+      // Agregar al DOM
+      document.body.appendChild(tempContainer);
+
+      // Esperar a que carguen las imágenes
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Capturar
+      const canvas = await html2canvas(tempContainer, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      // Generar PDF
+      const imgData = canvas.toDataURL("image/jpeg", 0.98);
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgWidth = 190;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, "JPEG", 10, 10, imgWidth, imgHeight);
+
+      const filename = `prediccion_${selected.id}_${formatDate(
+        selected.fecha ?? selected.created_at,
+      )
+        .replace(/\s/g, "_")
+        .replace(/:/g, "-")}.pdf`;
+
+      pdf.save(filename);
+
+      // Limpiar
+      document.body.removeChild(tempContainer);
+
+      toast.dismiss();
       toast.success("PDF exportado exitosamente");
     } catch (error) {
       console.error("Error al exportar PDF:", error);
+      toast.dismiss();
       toast.error("Error al exportar el PDF");
     }
   };
@@ -488,7 +691,7 @@ export default function HistoryPage() {
                         </p>
 
                         <div className="space-y-1 mb-2">
-                          {Object.entries(r.todas_predicciones)
+                          {r.todas_predicciones && Object.entries(r.todas_predicciones)
                             .sort(([, a], [, b]) => b - a)
                             .map(([cls, prob]) => (
                               <div
@@ -534,428 +737,6 @@ export default function HistoryPage() {
                               </p>
                             </div>
                           ))}
-                        </div>
-                      </div>
-                    );
-                  },
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Contenido invisible para exportar a PDF */}
-        <div
-          ref={pdfRef}
-          style={{ display: "none" }}
-        >
-          <div
-            style={{
-              padding: "20px",
-              fontFamily: "Arial, sans-serif",
-              fontSize: "12px",
-              color: "#000",
-            }}
-          >
-            {/* Encabezado */}
-            <div
-              style={{
-                marginBottom: "20px",
-                borderBottom: "2px solid #059669",
-                paddingBottom: "10px",
-              }}
-            >
-              <h1
-                style={{
-                  fontSize: "24px",
-                  fontWeight: "bold",
-                  margin: "0 0 5px 0",
-                  color: "#059669",
-                }}
-              >
-                Reporte de Predicción
-              </h1>
-              <p style={{ margin: "0", fontSize: "11px", color: "#666" }}>
-                ID: #{selected.id} | Fecha:{" "}
-                {formatDate(selected.fecha ?? selected.created_at)}
-              </p>
-            </div>
-
-            {/* Imagen con información */}
-            <div style={{ marginBottom: "20px" }}>
-              <h2
-                style={{
-                  fontSize: "14px",
-                  fontWeight: "bold",
-                  margin: "0 0 8px 0",
-                  color: "#1f2937",
-                }}
-              >
-                Imagen Analizada
-              </h2>
-              <div style={{ textAlign: "center", marginBottom: "10px" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selected.imagen_url}
-                  alt="Imagen"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "250px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                  }}
-                  crossOrigin="anonymous"
-                />
-              </div>
-            </div>
-
-            {/* Fase 1 */}
-            <div
-              style={{
-                marginBottom: "15px",
-                padding: "10px",
-                border: "1px solid #e5e7eb",
-                borderRadius: "4px",
-                backgroundColor: "#f9fafb",
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: "13px",
-                  fontWeight: "bold",
-                  margin: "0 0 8px 0",
-                  color: "#374151",
-                }}
-              >
-                FASE 1 — DETECCIÓN (Roboflow)
-              </h3>
-              {selected.fase1_resumen ? (
-                <div style={{ lineHeight: "1.6" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <span style={{ fontWeight: "bold" }}>Coincidencias:</span>
-                    <span>
-                      {selected.fase1_resumen.has_matches
-                        ? "Sí — Enfermedad detectada"
-                        : "No — Papa saludable"}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <span style={{ fontWeight: "bold" }}>
-                      Total de Detecciones:
-                    </span>
-                    <span>{selected.fase1_resumen.total_detecciones}</span>
-                  </div>
-                  {selected.fase1_resumen.clases_detectadas.length > 0 && (
-                    <div style={{ marginBottom: "4px" }}>
-                      <span style={{ fontWeight: "bold" }}>
-                        Clases Detectadas:
-                      </span>
-                      <span>
-                        {" "}
-                        {selected.fase1_resumen.clases_detectadas
-                          .map((c) => diseaseName(c))
-                          .join(", ")}
-                      </span>
-                    </div>
-                  )}
-                  {selected.fase1_payload && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ fontWeight: "bold" }}>Modelo:</span>
-                      <span>{selected.fase1_payload.model_id}</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p style={{ color: "#999" }}>Sin datos</p>
-              )}
-            </div>
-
-            {/* Fase 2 */}
-            {selected.fase2_resumen && (
-              <div
-                style={{
-                  marginBottom: "15px",
-                  padding: "10px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "4px",
-                  backgroundColor: "#f9fafb",
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "bold",
-                    margin: "0 0 8px 0",
-                    color: "#374151",
-                  }}
-                >
-                  FASE 2 — DIAGNÓSTICO (Mejor Modelo)
-                </h3>
-                <div style={{ lineHeight: "1.6" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <span style={{ fontWeight: "bold" }}>Predicción:</span>
-                    <span>
-                      {diseaseName(selected.fase2_resumen.clase_predicha)}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <span style={{ fontWeight: "bold" }}>Confianza:</span>
-                    <span>
-                      {(selected.fase2_resumen.confianza * 100).toFixed(2)}%
-                    </span>
-                  </div>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <span style={{ fontWeight: "bold" }}>Modelo:</span>
-                    <span>{modelLabel(selected.fase2_resumen.modelo)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Comparativa Completa */}
-            {fase2 && (
-              <div
-                style={{
-                  padding: "10px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "4px",
-                  backgroundColor: "#f9fafb",
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "bold",
-                    margin: "0 0 8px 0",
-                    color: "#374151",
-                  }}
-                >
-                  COMPARATIVA DE MODELOS
-                </h3>
-
-                {fase2.resumen_comparativo && (
-                  <div
-                    style={{
-                      marginBottom: "10px",
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "10px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: "8px",
-                        backgroundColor: "#fff",
-                        border: "1px solid #ddd",
-                        borderRadius: "3px",
-                      }}
-                    >
-                      <p
-                        style={{ margin: "0", fontSize: "10px", color: "#666" }}
-                      >
-                        Consenso
-                      </p>
-                      <p
-                        style={{
-                          margin: "0",
-                          fontWeight: "bold",
-                          fontSize: "11px",
-                        }}
-                      >
-                        {fase2.resumen_comparativo.consenso ? (
-                          <>
-                            Sí —{" "}
-                            {diseaseName(
-                              fase2.resumen_comparativo.clase_consenso ?? "",
-                            )}
-                          </>
-                        ) : (
-                          <>No hay consenso</>
-                        )}
-                      </p>
-                    </div>
-                    <div
-                      style={{
-                        padding: "8px",
-                        backgroundColor: "#fff",
-                        border: "1px solid #ddd",
-                        borderRadius: "3px",
-                      }}
-                    >
-                      <p
-                        style={{ margin: "0", fontSize: "10px", color: "#666" }}
-                      >
-                        Más Confiado
-                      </p>
-                      <p
-                        style={{
-                          margin: "0",
-                          fontWeight: "bold",
-                          fontSize: "11px",
-                        }}
-                      >
-                        {modelLabel(
-                          fase2.resumen_comparativo.modelo_mas_confiado,
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {Object.entries(fase2.resultados).map(
-                  ([key, r]: [string, ModelResult]) => {
-                    const isBest = key === fase2.mejor_modelo_global;
-                    return (
-                      <div
-                        key={key}
-                        style={{
-                          marginBottom: "8px",
-                          padding: "8px",
-                          border: isBest
-                            ? "2px solid #059669"
-                            : "1px solid #ddd",
-                          borderRadius: "3px",
-                          backgroundColor: isBest ? "#f0fdf4" : "#fff",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          <span
-                            style={{ fontWeight: "bold", fontSize: "11px" }}
-                          >
-                            {modelLabel(key)}{" "}
-                            {isBest && <strong>[MEJOR]</strong>}
-                          </span>
-                          <span style={{ fontSize: "10px" }}>
-                            {(r.confianza * 100).toFixed(2)}%
-                          </span>
-                        </div>
-                        <div style={{ marginBottom: "6px" }}>
-                          <p
-                            style={{
-                              margin: "0",
-                              fontWeight: "bold",
-                              fontSize: "11px",
-                            }}
-                          >
-                            {diseaseName(r.clase_predicha)}
-                          </p>
-                        </div>
-
-                        {/* Predicciones */}
-                        <div style={{ marginBottom: "6px", fontSize: "9px" }}>
-                          {Object.entries(r.todas_predicciones)
-                            .sort(([, a], [, b]) => b - a)
-                            .map(([cls, prob]) => (
-                              <div
-                                key={cls}
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  marginBottom: "2px",
-                                }}
-                              >
-                                <span>{diseaseName(cls)}</span>
-                                <span>
-                                  {prob < 0.0001
-                                    ? "<0.01%"
-                                    : `${(prob * 100).toFixed(2)}%`}
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-
-                        {/* Métricas */}
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                            gap: "4px",
-                            fontSize: "9px",
-                            borderTop: "1px solid #ddd",
-                            paddingTop: "4px",
-                          }}
-                        >
-                          <div style={{ textAlign: "center" }}>
-                            <p style={{ margin: "0 0 2px 0", color: "#666" }}>
-                              Acc
-                            </p>
-                            <p style={{ margin: "0", fontWeight: "bold" }}>
-                              {(
-                                r.metricas_entrenamiento.accuracy * 100
-                              ).toFixed(1)}
-                              %
-                            </p>
-                          </div>
-                          <div style={{ textAlign: "center" }}>
-                            <p style={{ margin: "0 0 2px 0", color: "#666" }}>
-                              Prec
-                            </p>
-                            <p style={{ margin: "0", fontWeight: "bold" }}>
-                              {(
-                                r.metricas_entrenamiento.precision * 100
-                              ).toFixed(1)}
-                              %
-                            </p>
-                          </div>
-                          <div style={{ textAlign: "center" }}>
-                            <p style={{ margin: "0 0 2px 0", color: "#666" }}>
-                              Rec
-                            </p>
-                            <p style={{ margin: "0", fontWeight: "bold" }}>
-                              {(r.metricas_entrenamiento.recall * 100).toFixed(
-                                1,
-                              )}
-                              %
-                            </p>
-                          </div>
-                          <div style={{ textAlign: "center" }}>
-                            <p style={{ margin: "0 0 2px 0", color: "#666" }}>
-                              F1
-                            </p>
-                            <p style={{ margin: "0", fontWeight: "bold" }}>
-                              {(
-                                r.metricas_entrenamiento.f1_score * 100
-                              ).toFixed(1)}
-                              %
-                            </p>
-                          </div>
                         </div>
                       </div>
                     );

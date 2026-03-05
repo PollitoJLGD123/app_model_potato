@@ -94,3 +94,19 @@ export interface RoboflowEvaluationResponse {
   message: string;
   status: "success" | "error";
 }
+
+export interface Surco {
+  id: number;
+  numero: number;
+  descripcion: string | null;
+  lote_id: number;
+  lote_identificador: string;
+  modulo_id: number;
+  modulo_nombre: string;
+}
+
+export interface SurcosResponse {
+  data: Surco[];
+  message: string;
+  status: "success" | "error";
+}

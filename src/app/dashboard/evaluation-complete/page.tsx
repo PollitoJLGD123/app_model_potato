@@ -2,12 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { evaluationImage, evaluationRoboflow } from "@/service/evaluation";
+import {
+  evaluationImage,
+  evaluationRoboflow,
+  getSurcos,
+} from "@/service/evaluation";
 import {
   MultiModelEvaluationResult,
   ModelResult,
   RoboflowDetection,
   RoboflowPrediction,
+  Surco,
 } from "@/types/evaluation";
 
 type LoadingStep = "idle" | "step1" | "step2";
@@ -34,6 +39,9 @@ export default function EvaluationCompletePage() {
   const [loadingStep, setLoadingStep] = useState<LoadingStep>("idle");
   const [error, setError] = useState<string>("");
   const [zoomLevel, setZoomLevel] = useState<(typeof ZOOM_OPTIONS)[number]>(1);
+  const [surcos, setSurcos] = useState<Surco[]>([]);
+  const [selectedSurcoId, setSelectedSurcoId] = useState<number | null>(null);
+  const [loadingSurcos, setLoadingSurcos] = useState<boolean>(true);
 
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
@@ -41,6 +49,26 @@ export default function EvaluationCompletePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load surcos on component mount
+  useEffect(() => {
+    const loadSurcos = async () => {
+      try {
+        setLoadingSurcos(true);
+        const response = await getSurcos();
+        setSurcos(response.data || []);
+        if (response.data && response.data.length > 0) {
+          setSelectedSurcoId(response.data[0].id);
+        }
+      } catch (err) {
+        console.error("Error loading surcos:", err);
+        toast.error("No se pudieron cargar los surcos");
+      } finally {
+        setLoadingSurcos(false);
+      }
+    };
+    loadSurcos();
+  }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -218,10 +246,16 @@ export default function EvaluationCompletePage() {
 
     try {
       setLoadingStep("step1");
-      const detectionResponse = await evaluationRoboflow(selectedImage);
+      const detectionResponse = await evaluationRoboflow(
+        selectedImage,
+        selectedSurcoId || undefined,
+      );
       setRoboflowResult(detectionResponse.data);
 
-      if (!detectionResponse.data.has_matches || !detectionResponse.data.predictions.length) {
+      if (
+        !detectionResponse.data.has_matches ||
+        !detectionResponse.data.predictions.length
+      ) {
         const message =
           detectionResponse.message ||
           "No se detectó ninguna hoja en la imagen. Por favor sube una imagen donde la hoja sea claramente visible.";
@@ -346,6 +380,42 @@ export default function EvaluationCompletePage() {
           </div>
 
           <div className="mt-6 space-y-3">
+            {/* Surco Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleccionar Surco (Opcional)
+              </label>
+              {loadingSurcos ? (
+                <p className="text-sm text-gray-500">Cargando surcos...</p>
+              ) : surcos.length > 0 ? (
+                <select
+                  value={selectedSurcoId || ""}
+                  onChange={(e) =>
+                    setSelectedSurcoId(
+                      e.target.value ? parseInt(e.target.value) : null,
+                    )
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">Sin surco asignado</option>
+                  {surcos.map((surco) => (
+                    <option
+                      key={surco.id}
+                      value={surco.id}
+                    >
+                      {surco.modulo_nombre} → {surco.lote_identificador} → Surco{" "}
+                      {surco.numero}
+                      {surco.descripcion ? ` (${surco.descripcion})` : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  No hay surcos disponibles
+                </p>
+              )}
+            </div>
+
             <button
               onClick={handleSubmit}
               disabled={!selectedImage || loadingStep !== "idle"}
