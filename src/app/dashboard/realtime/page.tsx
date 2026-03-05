@@ -441,6 +441,7 @@ export default function RealtimePage() {
 
     try {
       setLoadingStep("step1");
+      setClassificationResult(null);
       const detectionResponse = await evaluationRoboflow(
         file,
         selectedSurcoId ?? undefined,
@@ -985,7 +986,8 @@ export default function RealtimePage() {
                         <p className="font-bold text-emerald-700">
                           {
                             getModelMeta(
-                              classificationResult.mejor_modelo_global,
+                              classificationResult.resumen_comparativo
+                                .modelo_mas_confiado,
                             ).label
                           }
                         </p>
@@ -1038,7 +1040,7 @@ export default function RealtimePage() {
                       ([key, result]) => {
                         const meta = getModelMeta(key);
                         const isBest =
-                          key === classificationResult.mejor_modelo_global;
+                          key === classificationResult.resumen_comparativo.modelo_mas_confiado;
                         return (
                           <div
                             key={key}

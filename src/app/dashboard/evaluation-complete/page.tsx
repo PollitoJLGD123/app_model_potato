@@ -313,6 +313,7 @@ export default function EvaluationCompletePage() {
     // Flujo estándar: evaluación en 2 pasos
     try {
       setLoadingStep("step1");
+      setClassificationResult(null);
       const detectionResponse = await evaluationRoboflow(
         selectedImage,
         selectedSurcoId || undefined,
@@ -662,7 +663,8 @@ export default function EvaluationCompletePage() {
                         <p className="font-bold text-emerald-700">
                           {
                             getModelMeta(
-                              classificationResult.mejor_modelo_global,
+                              classificationResult.resumen_comparativo
+                                .modelo_mas_confiado,
                             ).label
                           }
                         </p>
@@ -715,7 +717,7 @@ export default function EvaluationCompletePage() {
                       ([key, result]) => {
                         const meta = getModelMeta(key);
                         const isBest =
-                          key === classificationResult.mejor_modelo_global;
+                          key === classificationResult.resumen_comparativo.modelo_mas_confiado;
                         return (
                           <div
                             key={key}
