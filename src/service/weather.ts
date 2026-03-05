@@ -1,7 +1,7 @@
 import axios from "axios";
 import { GeoLocation, IpResponse, WeatherData } from "@/types/weather";
 
-const OPENWEATHER_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_KEY;
+const OPENWEATHER_KEY = "1dea6ec6f19052f4ef3ca5d2471684ca";
 
 export async function fetchPublicIp(): Promise<string> {
   const { data } = await axios.get<IpResponse>(
