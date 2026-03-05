@@ -15,11 +15,6 @@ export const evaluationImage = async (
   const response = await api.post<MultiModelEvaluationResponse>(
     "/evaluation/evaluate",
     formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    },
   );
 
   return response.data;
@@ -38,11 +33,6 @@ export const evaluationRoboflow = async (
   const response = await api.post<RoboflowEvaluationResponse>(
     "/evaluation/roboflow",
     formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    },
   );
 
   return response.data;

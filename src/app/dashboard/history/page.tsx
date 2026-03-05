@@ -106,7 +106,8 @@ export default function HistoryPage() {
       tempContainer.style.padding = "40px";
       tempContainer.style.color = "#000";
 
-      const diagnosis = selected.fase2_resumen?.clase_predicha ?? "Sin clasificar";
+      const diagnosis =
+        selected.fase2_resumen?.clase_predicha ?? "Sin clasificar";
       const confidence = selected.fase2_resumen?.confianza ?? 0;
       const mejor_modelo = selected.fase2_resumen?.modelo ?? "N/A";
 
@@ -158,7 +159,7 @@ export default function HistoryPage() {
       fase1.style.borderRadius = "6px";
 
       const fase1Title = document.createElement("h2");
-      fase1Title.textContent = "FASE 1: DETECCIÓN (Roboflow)";
+      fase1Title.textContent = "FASE 1: DETECCIÓN (YoloV8)";
       fase1Title.style.fontSize = "14px";
       fase1Title.style.fontWeight = "bold";
       fase1Title.style.margin = "0 0 12px 0";
@@ -242,7 +243,9 @@ export default function HistoryPage() {
             modelRow.style.marginBottom = "8px";
             modelRow.style.padding = "8px";
             modelRow.style.backgroundColor = isBest ? "#dbeafe" : "#fff";
-            modelRow.style.border = isBest ? "1px solid #0ea5e9" : "1px solid #e5e7eb";
+            modelRow.style.border = isBest
+              ? "1px solid #0ea5e9"
+              : "1px solid #e5e7eb";
             modelRow.style.borderRadius = "4px";
 
             modelRow.innerHTML = `
@@ -691,29 +694,30 @@ export default function HistoryPage() {
                         </p>
 
                         <div className="space-y-1 mb-2">
-                          {r.todas_predicciones && Object.entries(r.todas_predicciones)
-                            .sort(([, a], [, b]) => b - a)
-                            .map(([cls, prob]) => (
-                              <div
-                                key={cls}
-                                className="flex items-center gap-1.5"
-                              >
-                                <span className="text-[10px] text-slate-500 w-20 truncate">
-                                  {diseaseName(cls)}
-                                </span>
-                                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${classColor(cls)}`}
-                                    style={{ width: `${prob * 100}%` }}
-                                  />
+                          {r.todas_predicciones &&
+                            Object.entries(r.todas_predicciones)
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([cls, prob]) => (
+                                <div
+                                  key={cls}
+                                  className="flex items-center gap-1.5"
+                                >
+                                  <span className="text-[10px] text-slate-500 w-20 truncate">
+                                    {diseaseName(cls)}
+                                  </span>
+                                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${classColor(cls)}`}
+                                      style={{ width: `${prob * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[10px] tabular-nums font-medium text-slate-600 w-12 text-right">
+                                    {prob < 0.0001
+                                      ? "<0.01%"
+                                      : `${(prob * 100).toFixed(2)}%`}
+                                  </span>
                                 </div>
-                                <span className="text-[10px] tabular-nums font-medium text-slate-600 w-12 text-right">
-                                  {prob < 0.0001
-                                    ? "<0.01%"
-                                    : `${(prob * 100).toFixed(2)}%`}
-                                </span>
-                              </div>
-                            ))}
+                              ))}
                         </div>
 
                         <div className="grid grid-cols-4 gap-1 text-center pt-2 border-t border-slate-100">

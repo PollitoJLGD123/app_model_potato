@@ -39,13 +39,14 @@ export interface Prediccion {
     has_matches: boolean;
     total_detecciones: number;
     clases_detectadas: string[];
-  };
-  fase1_payload: Record<string, unknown>;
+  } | null;
+  fase1_payload: Record<string, unknown> | null;
   fase2_resumen: {
-    clase_predicha: string;
+    modelo?: string | null;
+    clase_predicha: string | null;
     confianza: number;
-  };
-  fase2_payload: Record<string, unknown>;
+  } | null;
+  fase2_payload: Record<string, unknown> | null;
   fecha: string;
   created_at: string | null;
   updated_at: string | null;

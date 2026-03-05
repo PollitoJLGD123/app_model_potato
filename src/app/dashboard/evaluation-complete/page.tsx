@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   evaluationImage,
   evaluationRoboflow,
   getSurcos,
 } from "@/service/evaluation";
+import { evaluarSurco } from "@/service/hierarchy";
 import {
   MultiModelEvaluationResult,
   ModelResult,
@@ -28,7 +30,28 @@ type RenderBox = {
 
 const ZOOM_OPTIONS = [1, 2, 3, 4] as const;
 
+const STORAGE_KEY_IMAGE = "evaluation-pending-image";
+const STORAGE_KEY_FILENAME = "evaluation-pending-filename";
+const STORAGE_KEY_TYPE = "evaluation-pending-type";
+
+function dataUrlToFile(dataUrl: string, filename: string, mimeType: string): File {
+  const arr = dataUrl.split(",");
+  const mime = arr[0].match(/:(.*?);/)?.[1] || mimeType || "image/jpeg";
+  const bstr = atob(arr[1] || "");
+  const n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  for (let i = 0; i < n; i++) u8arr[i] = bstr.charCodeAt(i);
+  return new File([new Blob([u8arr], { type: mime })], filename, { type: mime });
+}
+
 export default function EvaluationCompletePage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const moduloId = searchParams.get("moduloId");
+  const loteId = searchParams.get("loteId");
+  const surcoIdParam = searchParams.get("surcoId");
+  const hasHierarchyContext = Boolean(moduloId && loteId && surcoIdParam);
+
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [roboflowResult, setRoboflowResult] =
@@ -50,14 +73,37 @@ export default function EvaluationCompletePage() {
   const imageRef = useRef<HTMLImageElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Load surcos on component mount
+  // Pre-cargar imagen y surco desde predicciones (sessionStorage + URL)
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const dataUrl = sessionStorage.getItem(STORAGE_KEY_IMAGE);
+    const filename = sessionStorage.getItem(STORAGE_KEY_FILENAME);
+    const mimeType = sessionStorage.getItem(STORAGE_KEY_TYPE) || "image/jpeg";
+    if (dataUrl && filename) {
+      setPreview(dataUrl);
+      const file = dataUrlToFile(dataUrl, filename, mimeType);
+      setSelectedImage(file);
+      sessionStorage.removeItem(STORAGE_KEY_IMAGE);
+      sessionStorage.removeItem(STORAGE_KEY_FILENAME);
+      sessionStorage.removeItem(STORAGE_KEY_TYPE);
+    }
+    if (surcoIdParam) {
+      setSelectedSurcoId(parseInt(surcoIdParam, 10));
+    }
+  }, [surcoIdParam]);
+
+  // Load surcos on component mount (solo si no hay contexto de jerarquía)
+  useEffect(() => {
+    if (hasHierarchyContext) {
+      setLoadingSurcos(false);
+      return;
+    }
     const loadSurcos = async () => {
       try {
         setLoadingSurcos(true);
         const response = await getSurcos();
         setSurcos(response.data || []);
-        if (response.data && response.data.length > 0) {
+        if (response.data && response.data.length > 0 && !surcoIdParam) {
           setSelectedSurcoId(response.data[0].id);
         }
       } catch (err) {
@@ -68,7 +114,7 @@ export default function EvaluationCompletePage() {
       }
     };
     loadSurcos();
-  }, []);
+  }, [hasHierarchyContext, surcoIdParam]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -244,6 +290,27 @@ export default function EvaluationCompletePage() {
     setClassificationResult(null);
     setRoboflowMessage("");
 
+    // Flujo con jerarquía: usar evaluarSurco y redirigir al detalle
+    if (hasHierarchyContext && moduloId && loteId && surcoIdParam) {
+      try {
+        setLoadingStep("step1");
+        const res = await evaluarSurco(moduloId, loteId, surcoIdParam, selectedImage);
+        if (res.data) {
+          toast.success("Evaluación completada");
+          router.push(
+            `/dashboard/modulos/${moduloId}/lotes/${loteId}/surcos/${surcoIdParam}/predicciones/${res.data.id}`,
+          );
+          return;
+        }
+      } catch (err: unknown) {
+        setError(getErrorMessage(err));
+      } finally {
+        setLoadingStep("idle");
+      }
+      return;
+    }
+
+    // Flujo estándar: evaluación en 2 pasos
     try {
       setLoadingStep("step1");
       const detectionResponse = await evaluationRoboflow(
@@ -271,7 +338,7 @@ export default function EvaluationCompletePage() {
       setLoadingStep("step2");
       const classificationResponse = await evaluationImage(selectedImage);
       setClassificationResult(classificationResponse.data.clasificacion);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
       setLoadingStep("idle");
@@ -294,11 +361,13 @@ export default function EvaluationCompletePage() {
   };
 
   const stepMessage =
-    loadingStep === "step1"
-      ? "Paso 1/2: detectando zonas con Roboflow..."
-      : loadingStep === "step2"
-        ? "Paso 2/2: clasificando estado de la hoja..."
-        : "";
+    hasHierarchyContext && loadingStep === "step1"
+      ? "Evaluando imagen..."
+      : loadingStep === "step1"
+        ? "Paso 1/2: detectando zonas con Roboflow..."
+        : loadingStep === "step2"
+          ? "Paso 2/2: clasificando estado de la hoja..."
+          : "";
 
   return (
     <div className="p-8">
@@ -383,9 +452,13 @@ export default function EvaluationCompletePage() {
             {/* Surco Selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleccionar Surco (Opcional)
+                {hasHierarchyContext ? "Surco seleccionado" : "Seleccionar Surco (Opcional)"}
               </label>
-              {loadingSurcos ? (
+              {hasHierarchyContext ? (
+                <p className="text-sm text-emerald-700 font-medium py-2 px-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  Surco {surcoIdParam} — Evaluación en contexto de módulo/lote
+                </p>
+              ) : loadingSurcos ? (
                 <p className="text-sm text-gray-500">Cargando surcos...</p>
               ) : surcos.length > 0 ? (
                 <select

@@ -115,11 +115,6 @@ export const evaluarSurco = async (
   const response = await api.post<ApiResponse<Prediccion>>(
     `/modulos/${moduloId}/lotes/${loteId}/surcos/${surcoId}/predicciones/evaluar`,
     formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    },
   );
 
   return response.data;

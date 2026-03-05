@@ -128,12 +128,14 @@ function analyzeRecords(records: PrediccionRecord[]): AnalysisResult {
     const recent3 = sorted.slice(0, 3);
     const older3 = sorted.slice(3, 6);
     const recentDiseaseCount = recent3.filter(
-      (r) => !r.fase2_resumen!.clase_predicha.includes("healthy"),
+      (r) =>
+        !(r.fase2_resumen?.clase_predicha ?? "").includes("healthy"),
     ).length;
     const olderDiseaseCount =
       older3.length > 0
         ? older3.filter(
-            (r) => !r.fase2_resumen!.clase_predicha.includes("healthy"),
+            (r) =>
+              !(r.fase2_resumen?.clase_predicha ?? "").includes("healthy"),
           ).length
         : recentDiseaseCount;
 
@@ -141,7 +143,8 @@ function analyzeRecords(records: PrediccionRecord[]): AnalysisResult {
     else if (recentDiseaseCount < olderDiseaseCount) recentTrend = "improving";
     else recentTrend = "stable";
 
-    recentDiseaseClass = recent3[0].fase2_resumen!.clase_predicha;
+    recentDiseaseClass =
+      recent3[0].fase2_resumen?.clase_predicha ?? null;
   }
 
   return {

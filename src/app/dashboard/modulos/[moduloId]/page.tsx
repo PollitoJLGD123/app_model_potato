@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
 
-export default function ModuloDetailPage() {
-  redirect("/dashboard");
+export default async function ModuloDetailPage({
+  params,
+}: {
+  params: Promise<{ moduloId: string }>;
+}) {
+  const { moduloId } = await params;
+  redirect(`/dashboard/modulos/${moduloId}/lotes`);
 }

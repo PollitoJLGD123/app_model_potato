@@ -280,3 +280,29 @@ export function LogOut({ size = 20, className }: IconProps) {
     </svg>
   );
 }
+
+export function Rows3({ size = 20, className }: IconProps) {
+  return (
+    <svg
+      {...baseProps(size)}
+      className={className}
+    >
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
+export function Download({ size = 20, className }: IconProps) {
+  return (
+    <svg
+      {...baseProps(size)}
+      className={className}
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7,10 12,15 17,10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}

@@ -10,7 +10,7 @@ import {
 } from "@/service/evaluation";
 import {
   MultiModelEvaluationResult,
-  RoboflowEvaluationResult,
+  RoboflowDetection,
   RoboflowPrediction,
   Surco,
 } from "@/types/evaluation";
@@ -56,13 +56,31 @@ declare global {
 
 // ── Helpers puros (fuera del componente) ──────────────────────────────────
 
-function normalizePredictions(raw: unknown): LivePrediction[] {
-  if (Array.isArray(raw)) return raw as LivePrediction[];
-  if (raw && typeof raw === "object" && "predictions" in raw) {
-    const preds = (raw as { predictions?: unknown }).predictions;
-    if (Array.isArray(preds)) return preds as LivePrediction[];
+function normalizePrediction(p: Record<string, unknown>): LivePrediction {
+  if (p.bbox && typeof p.bbox === "object") {
+    const b = p.bbox as { x: number; y: number; width: number; height: number };
+    return {
+      x: b.x,
+      y: b.y,
+      width: b.width,
+      height: b.height,
+      confidence: (p.confidence as number) ?? 0,
+      class: (p.class as string) ?? "",
+    };
   }
-  return [];
+  return p as LivePrediction;
+}
+
+function normalizePredictions(raw: unknown): LivePrediction[] {
+  let arr: unknown[] = [];
+  if (Array.isArray(raw)) arr = raw;
+  else if (raw && typeof raw === "object" && "predictions" in raw) {
+    const preds = (raw as { predictions?: unknown }).predictions;
+    if (Array.isArray(preds)) arr = preds;
+  }
+  return arr
+    .filter((p): p is Record<string, unknown> => p != null && typeof p === "object")
+    .map(normalizePrediction);
 }
 
 function drawPredictions(
@@ -151,8 +169,7 @@ function getErrorMessage(err: unknown): string {
   const status = (e?.response as Record<string, unknown>)?.status;
   if (status === 401) return "Sesion expirada. Inicia sesion nuevamente.";
   if (status === 413) return "La imagen supera el tamano maximo permitido.";
-  if (status === 504)
-    return "Roboflow no respondio a tiempo. Intenta otra vez.";
+  if (status === 504) return "YoloV8 no respondio a tiempo. Intenta otra vez.";
   if (status === 502)
     return "Error del servicio de deteccion. Intenta mas tarde.";
   const data = (e?.response as Record<string, unknown>)?.data;
@@ -205,7 +222,7 @@ export default function RealtimePage() {
   const blobUrlRef = useRef<string | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [roboflowResult, setRoboflowResult] =
-    useState<RoboflowEvaluationResult | null>(null);
+    useState<RoboflowDetection | null>(null);
   const [classificationResult, setClassificationResult] =
     useState<MultiModelEvaluationResult | null>(null);
   const [roboflowMessage, setRoboflowMessage] = useState("");
@@ -341,20 +358,7 @@ export default function RealtimePage() {
     setCameraError("");
 
     try {
-      // Encender webcam
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 } },
-      });
-      streamRef.current = stream;
-      const video = videoRef.current!;
-      video.srcObject = stream;
-      await new Promise<void>((resolve, reject) => {
-        video.onloadedmetadata = () => {
-          video.play().then(resolve).catch(reject);
-        };
-      });
-
-      // Inicializar inferencejs
+      // 1. Inicializar inferencejs y cargar el modelo (como en el ejemplo del usuario)
       const { InferenceEngine, CVImage } = window.inferencejs;
       const engine = new InferenceEngine();
       inferEngineRef.current = engine;
@@ -365,11 +369,19 @@ export default function RealtimePage() {
       );
       workerIdRef.current = workerId;
 
+      // 2. Encender la webcam
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 480 } },
+      });
+      streamRef.current = stream;
+      const video = videoRef.current!;
+      video.srcObject = stream;
+
       setCameraPhase("active");
       isDetectingRef.current = true;
 
-      // Bucle de detección en tiempo real
-      const detectionLoop = async (): Promise<void> => {
+      // 3. Bucle de detección en tiempo real (inicia cuando el video empiece a reproducirse)
+      const detectarFrame = async (): Promise<void> => {
         if (!isDetectingRef.current) return;
 
         const canvas = canvasRef.current;
@@ -387,19 +399,24 @@ export default function RealtimePage() {
           }
           try {
             const cvimg = new CVImage(vid);
-            const raw = await eng.infer(wid, cvimg);
-            drawPredictions(canvas, normalizePredictions(raw));
+            const predictions = await eng.infer(wid, cvimg);
+            drawPredictions(canvas, normalizePredictions(predictions));
           } catch {
             // Ignorar errores de frame individual
           }
         }
 
         if (isDetectingRef.current) {
-          animFrameRef.current = requestAnimationFrame(detectionLoop);
+          animFrameRef.current = requestAnimationFrame(detectarFrame);
         }
       };
 
-      detectionLoop();
+      // Iniciar el bucle cuando el video empiece a reproducirse (tiempo real real)
+      video.onplaying = () => {
+        detectarFrame();
+      };
+
+      await video.play();
     } catch (err: unknown) {
       const e = err as { name?: string; message?: string };
       const msg =
@@ -429,7 +446,7 @@ export default function RealtimePage() {
         selectedSurcoId ?? undefined,
       );
       setRoboflowResult(detectionResponse.data);
-      const rbf = detectionResponse.data.roboflow;
+      const rbf = detectionResponse.data;
 
       if (!rbf.has_matches || !rbf.predictions.length) {
         const message =
@@ -514,7 +531,7 @@ export default function RealtimePage() {
   };
 
   // ── Bounding boxes para la foto capturada ─────────────────────────────
-  const roboflow = roboflowResult?.roboflow ?? null;
+  const roboflow = roboflowResult ?? null;
 
   const renderBoxes: RenderBox[] = useMemo(() => {
     if (!roboflow?.predictions.length) return [];
@@ -565,7 +582,7 @@ export default function RealtimePage() {
           <p className="text-gray-600">
             Fase 1: detección en vivo mediante la webcam con inferencejs. Fase
             2: toma una foto para análisis completo con cuadros delimitadores
-            (Roboflow) y clasificación multi-modelo.
+            (YoloV8) y clasificación multi-modelo.
           </p>
         </div>
 
@@ -669,7 +686,10 @@ export default function RealtimePage() {
                   >
                     <option value="">Selecciona un surco</option>
                     {surcos.map((surco) => (
-                      <option key={surco.id} value={surco.id}>
+                      <option
+                        key={surco.id}
+                        value={surco.id}
+                      >
                         {surco.modulo_nombre} → {surco.lote_identificador} →
                         Surco {surco.numero}
                         {surco.descripcion ? ` (${surco.descripcion})` : ""}
