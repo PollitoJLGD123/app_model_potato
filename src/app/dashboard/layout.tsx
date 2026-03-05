@@ -10,7 +10,11 @@ import {
   Map,
   Menu,
 } from "@/components/ui-icons";
-import { getLotesByModulo, getModulos, getSurcosByLote } from "@/service/hierarchy";
+import {
+  getLotesByModulo,
+  getModulos,
+  getSurcosByLote,
+} from "@/service/hierarchy";
 import { Lote, Modulo, Surco } from "@/types/hierarchy";
 
 export default function DashboardLayout({
@@ -23,10 +27,16 @@ export default function DashboardLayout({
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [modulos, setModulos] = useState<Modulo[]>([]);
-  const [lotesDeModulo, setLotesDeModulo] = useState<Record<string, Lote[]>>({});
+  const [lotesDeModulo, setLotesDeModulo] = useState<Record<string, Lote[]>>(
+    {},
+  );
   const [surcosDeLote, setSurcosDeLote] = useState<Record<string, Surco[]>>({});
-  const [expandedModulos, setExpandedModulos] = useState<Record<string, boolean>>({});
-  const [expandedLotes, setExpandedLotes] = useState<Record<string, boolean>>({});
+  const [expandedModulos, setExpandedModulos] = useState<
+    Record<string, boolean>
+  >({});
+  const [expandedLotes, setExpandedLotes] = useState<Record<string, boolean>>(
+    {},
+  );
 
   useEffect(() => {
     // Verificar si hay token
@@ -187,7 +197,10 @@ export default function DashboardLayout({
                 const isModuloExpanded = expandedModulos[modulo.id];
 
                 return (
-                  <div key={modulo.id} className="text-sm">
+                  <div
+                    key={modulo.id}
+                    className="text-sm"
+                  >
                     <div className="flex items-center justify-between p-2 rounded-md hover:bg-slate-100">
                       <button
                         onClick={() => router.push("/dashboard")}
@@ -199,13 +212,21 @@ export default function DashboardLayout({
                         onClick={() => toggleModulo(modulo.id)}
                         className="p-1 rounded hover:bg-slate-200"
                       >
-                        {isModuloExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        {isModuloExpanded ? (
+                          <ChevronDown size={14} />
+                        ) : (
+                          <ChevronRight size={14} />
+                        )}
                       </button>
                     </div>
 
                     {isModuloExpanded && (
                       <div className="ml-4 pl-3 border-l-2 border-slate-100 space-y-1 mt-1">
-                        {lotes.length === 0 && <p className="text-xs text-slate-400 py-1 italic">Sin lotes</p>}
+                        {lotes.length === 0 && (
+                          <p className="text-xs text-slate-400 py-1 italic">
+                            Sin lotes
+                          </p>
+                        )}
                         {lotes.map((lote) => {
                           const surcos = surcosDeLote[lote.id] || [];
                           const isLoteExpanded = expandedLotes[lote.id];
@@ -217,20 +238,31 @@ export default function DashboardLayout({
                                   onClick={() => router.push("/dashboard")}
                                   className="text-left truncate text-slate-600 flex items-center"
                                 >
-                                  <Layers size={12} className="mr-2" />
+                                  <Layers
+                                    size={12}
+                                    className="mr-2"
+                                  />
                                   {lote.identificador}
                                 </button>
                                 <button
                                   onClick={() => toggleLote(modulo.id, lote.id)}
                                   className="p-1 rounded hover:bg-slate-200"
                                 >
-                                  {isLoteExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                  {isLoteExpanded ? (
+                                    <ChevronDown size={14} />
+                                  ) : (
+                                    <ChevronRight size={14} />
+                                  )}
                                 </button>
                               </div>
 
                               {isLoteExpanded && (
                                 <div className="ml-4 pl-3 border-l-2 border-slate-100 space-y-1 mt-1">
-                                  {surcos.length === 0 && <p className="text-xs text-slate-400 py-1 italic">Sin surcos</p>}
+                                  {surcos.length === 0 && (
+                                    <p className="text-xs text-slate-400 py-1 italic">
+                                      Sin surcos
+                                    </p>
+                                  )}
                                   {surcos.map((surco) => (
                                     <button
                                       key={surco.id}
