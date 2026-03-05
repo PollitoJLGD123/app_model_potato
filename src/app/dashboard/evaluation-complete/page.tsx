@@ -19,6 +19,8 @@ type RenderBox = {
   confidence: number;
 };
 
+const ZOOM_OPTIONS = [1, 2, 3, 4] as const;
+
 export default function EvaluationCompletePage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -29,12 +31,14 @@ export default function EvaluationCompletePage() {
   const [roboflowMessage, setRoboflowMessage] = useState<string>("");
   const [loadingStep, setLoadingStep] = useState<LoadingStep>("idle");
   const [error, setError] = useState<string>("");
+  const [zoomLevel, setZoomLevel] = useState<(typeof ZOOM_OPTIONS)[number]>(1);
 
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,6 +80,23 @@ export default function EvaluationCompletePage() {
       window.removeEventListener("resize", onResize);
     };
   }, [preview]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    // Center the zoomed content inside the scroll viewport.
+    container.scrollLeft = Math.max(
+      0,
+      (container.scrollWidth - container.clientWidth) / 2,
+    );
+    container.scrollTop = Math.max(
+      0,
+      (container.scrollHeight - container.clientHeight) / 2,
+    );
+  }, [zoomLevel, displaySize.width, displaySize.height, preview]);
 
   const getBoxColor = (className: string): string => {
     const normalized = className.toLowerCase();
@@ -185,6 +206,7 @@ export default function EvaluationCompletePage() {
     setError("");
     setNaturalSize({ width: 0, height: 0 });
     setDisplaySize({ width: 0, height: 0 });
+    setZoomLevel(1);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -204,7 +226,7 @@ export default function EvaluationCompletePage() {
           Evaluacion Completa
         </h1>
         <p className="text-gray-600">
-          Paso 1: deteccion con Roboflow y cajas. Paso 2: clasificacion de
+          Paso 1: deteccion con cudros delimitadores. Paso 2: clasificacion de
           enfermedad o estado saludable.
         </p>
       </div>
@@ -309,42 +331,89 @@ export default function EvaluationCompletePage() {
 
           {preview ? (
             <div className="border border-gray-200 rounded-lg p-3">
-              <div className="relative inline-block mx-auto">
-                <img
-                  ref={imageRef}
-                  src={preview}
-                  alt="Imagen analizada"
-                  className="max-h-105 w-auto rounded-lg"
-                  onLoad={updateImageSize}
-                />
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-700">Zoom</p>
+                <div className="flex items-center gap-2">
+                  {ZOOM_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setZoomLevel(option)}
+                      className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                        zoomLevel === option
+                          ? "bg-emerald-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      x{option}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                {renderBoxes.length > 0 && (
-                  <div className="absolute inset-0 pointer-events-none">
-                    {renderBoxes.map((box, index) => {
-                      const color = getBoxColor(box.label);
-                      return (
-                        <div
-                          key={`${box.label}-${index}`}
-                          className="absolute"
-                          style={{
-                            left: `${box.left}px`,
-                            top: `${box.top}px`,
-                            width: `${box.width}px`,
-                            height: `${box.height}px`,
-                            border: `2px solid ${color}`,
-                          }}
-                        >
-                          <div
-                            className="absolute -top-6 left-0 text-white text-xs px-2 py-0.5 rounded"
-                            style={{ backgroundColor: color }}
-                          >
-                            {box.label} {(box.confidence * 100).toFixed(0)}%
-                          </div>
+              <div
+                ref={scrollContainerRef}
+                className="overflow-auto rounded-lg border border-gray-100 bg-gray-50 p-2"
+              >
+                <div
+                  className="relative mx-auto"
+                  style={{
+                    width: displaySize.width
+                      ? `${displaySize.width * zoomLevel}px`
+                      : undefined,
+                    height: displaySize.height
+                      ? `${displaySize.height * zoomLevel}px`
+                      : undefined,
+                  }}
+                >
+                  <div
+                    className="absolute top-0 left-0 origin-top-left"
+                    style={{ transform: `scale(${zoomLevel})` }}
+                  >
+                    <div className="relative inline-block">
+                      <img
+                        ref={imageRef}
+                        src={preview}
+                        alt="Imagen analizada"
+                        className="max-h-105 w-auto rounded-lg"
+                        onLoad={updateImageSize}
+                      />
+
+                      {renderBoxes.length > 0 && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          {renderBoxes.map((box, index) => {
+                            const color = getBoxColor(box.label);
+                            return (
+                              <div
+                                key={`${box.label}-${index}`}
+                                className="absolute"
+                                style={{
+                                  left: `${box.left}px`,
+                                  top: `${box.top}px`,
+                                  width: `${box.width}px`,
+                                  height: `${box.height}px`,
+                                  border: `2px solid ${color}`,
+                                }}
+                              >
+                                <div
+                                  className="absolute -top-6 left-0 text-white text-xs px-2 py-0.5 rounded"
+                                  style={{
+                                    backgroundColor: color,
+                                    transform: `scale(${1 / zoomLevel})`,
+                                    transformOrigin: "top left",
+                                  }}
+                                >
+                                  {box.label}{" "}
+                                  {(box.confidence * 100).toFixed(0)}%
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           ) : (
@@ -356,7 +425,7 @@ export default function EvaluationCompletePage() {
           <div className="space-y-3">
             <div className="p-4 rounded-lg border bg-slate-50 border-slate-200">
               <p className="text-sm font-semibold text-slate-700">
-                Paso 1: Deteccion Roboflow
+                Paso 1: Deteccion Cuadros Delimitadores
               </p>
               {roboflowResult ? (
                 <>
