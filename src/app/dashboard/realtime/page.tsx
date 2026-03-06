@@ -68,7 +68,7 @@ function normalizePrediction(p: Record<string, unknown>): LivePrediction {
       class: (p.class as string) ?? "",
     };
   }
-  return p as LivePrediction;
+  return p as unknown as LivePrediction;
 }
 
 function normalizePredictions(raw: unknown): LivePrediction[] {

@@ -4,6 +4,7 @@ import {
   RoboflowEvaluationResponse,
   PredictionHistoryResponse,
   SurcosResponse,
+  DiagnosisRecommendationsResponse,
 } from "@/types/evaluation";
 
 export const evaluationImage = async (
@@ -50,3 +51,16 @@ export const getSurcos = async (): Promise<SurcosResponse> => {
   const response = await api.get<SurcosResponse>("/evaluation/surcos");
   return response.data;
 };
+
+export const createDiagnosisReport = async (payload: any) => {
+  const response = await api.post("/evaluation/diagnosis", payload);
+  return response.data;
+};
+
+export const getDiagnosisRecommendations =
+  async (): Promise<DiagnosisRecommendationsResponse> => {
+    const response = await api.get<DiagnosisRecommendationsResponse>(
+      "/evaluation/diagnosis/recommendations",
+    );
+    return response.data;
+  };

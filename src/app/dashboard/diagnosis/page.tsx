@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { getPredictionHistory } from "@/service/evaluation";
+import { createDiagnosisReport, getPredictionHistory } from "@/service/evaluation";
 import { PrediccionRecord, ModelResult } from "@/types/evaluation";
 
 const DISEASE_NAMES: Record<string, string> = {
@@ -332,6 +332,7 @@ const TREND_LABEL: Record<string, { text: string; color: string }> = {
 export default function DiagnosisPage() {
   const [records, setRecords] = useState<PrediccionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -351,6 +352,49 @@ export default function DiagnosisPage() {
     () => generateRecommendations(analysis),
     [analysis],
   );
+
+  const handleSaveDiagnosis = async () => {
+    if (!records.length) {
+      toast.info("No hay registros para guardar");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const payload = {
+        total_evaluaciones: analysis.total,
+        con_clasificacion: analysis.withClassification,
+        sin_clasificacion: analysis.withoutClassification,
+        confianza_promedio: analysis.overallAvgConfidence,
+        total_detecciones: analysis.totalDetections,
+        promedio_detecciones_por_imagen: analysis.avgDetectionsPerImage,
+        imagenes_con_blight: analysis.blightDetected,
+        tasa_consenso: analysis.consensusRate,
+        indice_severidad: analysis.severityScore,
+        tendencia: analysis.recentTrend,
+        clase_reciente: analysis.recentDiseaseClass,
+        distribucion_enfermedades: analysis.byDisease,
+        recomendaciones: recommendations.map((rec) => ({
+          titulo: rec.title,
+          contenido: rec.description,
+          severidad: rec.severity,
+          etiquetas: [] as string[],
+        })),
+      };
+
+      await createDiagnosisReport(payload);
+      toast.success("Diagnóstico guardado correctamente");
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        "No se pudo guardar el diagnóstico";
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -386,14 +430,23 @@ export default function DiagnosisPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
-          Diagnóstico y Recomendaciones del Cultivo
-        </h1>
-        <p className="text-slate-500 mt-1">
-          Análisis inteligente basado en {analysis.total} evaluaciones
-          registradas.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+            Diagnóstico y Recomendaciones del Cultivo
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Análisis inteligente basado en {analysis.total} evaluaciones
+            registradas.
+          </p>
+        </div>
+        <button
+          onClick={handleSaveDiagnosis}
+          disabled={saving}
+          className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+        >
+          {saving ? "Guardando..." : "Guardar diagnóstico"}
+        </button>
       </div>
 
       {/* Severity bar */}
@@ -647,9 +700,17 @@ export default function DiagnosisPage() {
 
       {/* Recommendations */}
       <div className="space-y-4">
-        <h2 className="font-bold text-slate-800 text-xl">
-          Recomendaciones para el Agricultor
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-slate-800 text-xl">
+            Recomendaciones para el Agricultor
+          </h2>
+          <a
+            href="/dashboard/diagnosis-history"
+            className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2"
+          >
+            Ver historial guardado
+          </a>
+        </div>
         <div className="space-y-3">
           {recommendations.map((rec, i) => {
             const style = SEVERITY_STYLES[rec.severity];

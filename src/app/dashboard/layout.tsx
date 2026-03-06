@@ -99,6 +99,12 @@ export default function DashboardLayout({
               Evaluación Completa
             </button>
             <button
+              onClick={() => router.push("/dashboard/evaluation-batch")}
+              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/evaluation-batch")}`}
+            >
+              📂 Evaluación por Bloques
+            </button>
+            <button
               onClick={() => router.push("/dashboard/realtime")}
               className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/realtime")}`}
             >

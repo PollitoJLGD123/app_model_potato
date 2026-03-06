@@ -110,3 +110,31 @@ export interface SurcosResponse {
   message: string;
   status: "success" | "error";
 }
+
+// ── Diagnóstico agregado / recomendaciones ────────────────────────
+
+export interface DiagnosisReportSummary {
+  id: number;
+  fecha: string;
+  indice_severidad: number;
+  tendencia: string;
+  clase_reciente: string | null;
+}
+
+export interface DiagnosisRecommendationRecord {
+  id: number;
+  titulo: string | null;
+  contenido: string;
+  severidad: string | null;
+  etiquetas: string[] | null;
+  fecha: string;
+  created_at: string;
+  updated_at: string;
+  report?: DiagnosisReportSummary;
+}
+
+export interface DiagnosisRecommendationsResponse {
+  data: DiagnosisRecommendationRecord[];
+  status: "success" | "error";
+  message: string;
+}
