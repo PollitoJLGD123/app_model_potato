@@ -75,7 +75,9 @@ export default function EvaluationCompletePage() {
   const [loadingSurcos, setLoadingSurcos] = useState<boolean>(true);
 
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
-  const [selectedPeriodoId, setSelectedPeriodoId] = useState<number | null>(null);
+  const [selectedPeriodoId, setSelectedPeriodoId] = useState<number | null>(
+    null,
+  );
   const [loadingPeriodos, setLoadingPeriodos] = useState<boolean>(true);
 
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });

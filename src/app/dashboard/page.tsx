@@ -5,8 +5,8 @@ export default function DashboardPage() {
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
       <p className="mb-6">
-        Bienvenido al panel principal. Usa los enlaces siguientes para navegar por
-        la aplicación.
+        Bienvenido al panel principal. Usa los enlaces siguientes para navegar
+        por la aplicación.
       </p>
       <ul className="space-y-2">
         <li>
