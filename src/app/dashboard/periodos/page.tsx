@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { createPeriodo, getPeriodos, getPredictionsByPeriodo } from "@/service/evaluation";
+import {
+  createPeriodo,
+  getPeriodos,
+  getPredictionsByPeriodo,
+} from "@/service/evaluation";
 import { Periodo, PrediccionRecord } from "@/types/evaluation";
 
 type DiseaseStats = Record<string, number>;
@@ -86,7 +90,8 @@ export default function PeriodosPage() {
 
   const [periodSearch, setPeriodSearch] = useState("");
   const [diagnosisFilter, setDiagnosisFilter] = useState<string>("all");
-  const [detectionFilter, setDetectionFilter] = useState<DetectionFilter>("all");
+  const [detectionFilter, setDetectionFilter] =
+    useState<DetectionFilter>("all");
   const [confidenceMin, setConfidenceMin] = useState<number>(0);
   const [searchPrediction, setSearchPrediction] = useState("");
 
@@ -120,7 +125,9 @@ export default function PeriodosPage() {
     setLoadingEvolution(true);
     try {
       const sorted = [...items].sort(
-        (a, b) => new Date(a.fecha_inicio).getTime() - new Date(b.fecha_inicio).getTime(),
+        (a, b) =>
+          new Date(a.fecha_inicio).getTime() -
+          new Date(b.fecha_inicio).getTime(),
       );
       const entries = await Promise.all(
         sorted.map(async (periodo) => {
@@ -144,7 +151,8 @@ export default function PeriodosPage() {
             }
           });
 
-          const avgConfidence = confidenceCount > 0 ? confidenceSum / confidenceCount : 0;
+          const avgConfidence =
+            confidenceCount > 0 ? confidenceSum / confidenceCount : 0;
 
           return {
             periodoId: periodo.id,
@@ -190,7 +198,8 @@ export default function PeriodosPage() {
 
   const sortedPeriods = useMemo(() => {
     return [...periodos].sort(
-      (a, b) => new Date(a.fecha_inicio).getTime() - new Date(b.fecha_inicio).getTime(),
+      (a, b) =>
+        new Date(a.fecha_inicio).getTime() - new Date(b.fecha_inicio).getTime(),
     );
   }, [periodos]);
 
@@ -263,16 +272,25 @@ export default function PeriodosPage() {
       const conf = p.fase2_resumen?.confianza ?? 0;
       const hasDetections = Boolean(p.fase1_resumen?.has_matches);
       const idMatches = query.length === 0 || `${p.id}`.includes(query);
-      const diagnosisMatches = diagnosisFilter === "all" || diagnosis === diagnosisFilter;
+      const diagnosisMatches =
+        diagnosisFilter === "all" || diagnosis === diagnosisFilter;
       const confidenceMatches = conf >= confidenceMin / 100;
       const detectionMatches =
         detectionFilter === "all" ||
         (detectionFilter === "with" && hasDetections) ||
         (detectionFilter === "without" && !hasDetections);
 
-      return idMatches && diagnosisMatches && confidenceMatches && detectionMatches;
+      return (
+        idMatches && diagnosisMatches && confidenceMatches && detectionMatches
+      );
     });
-  }, [predictions, searchPrediction, diagnosisFilter, confidenceMin, detectionFilter]);
+  }, [
+    predictions,
+    searchPrediction,
+    diagnosisFilter,
+    confidenceMin,
+    detectionFilter,
+  ]);
 
   const predictionSummary = useMemo(() => {
     const summary: DiseaseStats = {};
@@ -295,14 +313,19 @@ export default function PeriodosPage() {
       summary,
       detections,
       total: filteredPredictions.length,
-      avgConfidence: confidenceCount > 0 ? totalConfidence / confidenceCount : 0,
+      avgConfidence:
+        confidenceCount > 0 ? totalConfidence / confidenceCount : 0,
     };
   }, [filteredPredictions]);
 
   const confidencePoints = useMemo(() => {
     return filteredPredictions
       .slice()
-      .sort((a, b) => new Date(a.fecha ?? a.created_at).getTime() - new Date(b.fecha ?? b.created_at).getTime())
+      .sort(
+        (a, b) =>
+          new Date(a.fecha ?? a.created_at).getTime() -
+          new Date(b.fecha ?? b.created_at).getTime(),
+      )
       .map((p) => p.fase2_resumen?.confianza ?? 0);
   }, [filteredPredictions]);
 
@@ -327,7 +350,9 @@ export default function PeriodosPage() {
       return;
     }
 
-    if (new Date(form.fecha_inicio).getTime() > new Date(form.fecha_fin).getTime()) {
+    if (
+      new Date(form.fecha_inicio).getTime() > new Date(form.fecha_fin).getTime()
+    ) {
       toast.error("La fecha de inicio no puede ser mayor que la fecha fin");
       return;
     }
@@ -352,11 +377,16 @@ export default function PeriodosPage() {
 
   const Hero = (
     <section className="rounded-3xl p-6 md:p-8 bg-linear-to-br from-slate-900 via-sky-900 to-cyan-700 text-white shadow-xl">
-      <p className="text-cyan-200 text-sm tracking-[0.18em] uppercase font-semibold">Campanas</p>
-      <h1 className="text-3xl md:text-4xl font-black mt-1">Gestor de periodos y evolucion</h1>
+      <p className="text-cyan-200 text-sm tracking-[0.18em] uppercase font-semibold">
+        Campanas
+      </p>
+      <h1 className="text-3xl md:text-4xl font-black mt-1">
+        Gestor de periodos y evolucion
+      </h1>
       <p className="text-cyan-100 mt-3 max-w-3xl">
-        Revisa tendencias por campana, abre las predicciones por periodo y filtra resultados para analizar
-        confianza, detecciones y clases de enfermedad.
+        Revisa tendencias por campana, abre las predicciones por periodo y
+        filtra resultados para analizar confianza, detecciones y clases de
+        enfermedad.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
         <div className="rounded-2xl bg-white/15 backdrop-blur border border-white/20 p-4">
@@ -365,11 +395,15 @@ export default function PeriodosPage() {
         </div>
         <div className="rounded-2xl bg-white/15 backdrop-blur border border-white/20 p-4">
           <p className="text-cyan-100 text-sm">Predicciones registradas</p>
-          <p className="text-3xl font-black mt-1">{periodTotals.totalPredictions}</p>
+          <p className="text-3xl font-black mt-1">
+            {periodTotals.totalPredictions}
+          </p>
         </div>
         <div className="rounded-2xl bg-white/15 backdrop-blur border border-white/20 p-4">
           <p className="text-cyan-100 text-sm">Confianza promedio</p>
-          <p className="text-3xl font-black mt-1">{(overallAvgConfidence * 100).toFixed(1)}%</p>
+          <p className="text-3xl font-black mt-1">
+            {(overallAvgConfidence * 100).toFixed(1)}%
+          </p>
         </div>
       </div>
     </section>
@@ -396,7 +430,8 @@ export default function PeriodosPage() {
                 Predicciones de {selectedPeriodo.nombre}
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Del {formatDate(selectedPeriodo.fecha_inicio)} al {formatDate(selectedPeriodo.fecha_fin)}
+                Del {formatDate(selectedPeriodo.fecha_inicio)} al{" "}
+                {formatDate(selectedPeriodo.fecha_fin)}
               </p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full lg:w-auto">
@@ -413,14 +448,19 @@ export default function PeriodosPage() {
               >
                 <option value="all">Todas las clases</option>
                 {allClasses.map((cls) => (
-                  <option key={cls} value={cls}>
+                  <option
+                    key={cls}
+                    value={cls}
+                  >
                     {diseaseName(cls)}
                   </option>
                 ))}
               </select>
               <select
                 value={detectionFilter}
-                onChange={(e) => setDetectionFilter(e.target.value as DetectionFilter)}
+                onChange={(e) =>
+                  setDetectionFilter(e.target.value as DetectionFilter)
+                }
                 className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="all">Con y sin detecciones</option>
@@ -453,19 +493,33 @@ export default function PeriodosPage() {
           <>
             <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Filtradas</p>
-                <p className="text-3xl font-black text-slate-900 mt-2">{predictionSummary.total}</p>
+                <p className="text-xs uppercase tracking-wider text-slate-400">
+                  Filtradas
+                </p>
+                <p className="text-3xl font-black text-slate-900 mt-2">
+                  {predictionSummary.total}
+                </p>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Detecciones</p>
-                <p className="text-3xl font-black text-slate-900 mt-2">{predictionSummary.detections}</p>
+                <p className="text-xs uppercase tracking-wider text-slate-400">
+                  Detecciones
+                </p>
+                <p className="text-3xl font-black text-slate-900 mt-2">
+                  {predictionSummary.detections}
+                </p>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Ratio deteccion</p>
-                <p className="text-3xl font-black text-slate-900 mt-2">{(detectionRate * 100).toFixed(1)}%</p>
+                <p className="text-xs uppercase tracking-wider text-slate-400">
+                  Ratio deteccion
+                </p>
+                <p className="text-3xl font-black text-slate-900 mt-2">
+                  {(detectionRate * 100).toFixed(1)}%
+                </p>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
-                <p className="text-xs uppercase tracking-wider text-slate-400">Confianza promedio</p>
+                <p className="text-xs uppercase tracking-wider text-slate-400">
+                  Confianza promedio
+                </p>
                 <p className="text-3xl font-black text-slate-900 mt-2">
                   {(predictionSummary.avgConfidence * 100).toFixed(1)}%
                 </p>
@@ -474,21 +528,60 @@ export default function PeriodosPage() {
 
             <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <article className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900">Tendencia de confianza</h3>
-                <p className="text-sm text-slate-500 mt-1">Serie temporal de las predicciones filtradas</p>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Tendencia de confianza
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Serie temporal de las predicciones filtradas
+                </p>
                 <div className="mt-5 h-56">
-                  <svg viewBox="0 0 800 220" className="w-full h-full">
+                  <svg
+                    viewBox="0 0 800 220"
+                    className="w-full h-full"
+                  >
                     <defs>
-                      <linearGradient id="confidenceGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.32" />
-                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0" />
+                      <linearGradient
+                        id="confidenceGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#0ea5e9"
+                          stopOpacity="0.32"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#0ea5e9"
+                          stopOpacity="0"
+                        />
                       </linearGradient>
                     </defs>
-                    <rect x={0} y={0} width={800} height={220} fill="#f8fafc" rx={16} />
+                    <rect
+                      x={0}
+                      y={0}
+                      width={800}
+                      height={220}
+                      fill="#f8fafc"
+                      rx={16}
+                    />
                     {[0, 25, 50, 75, 100].map((tick) => (
                       <g key={tick}>
-                        <line x1={40} y1={200 - tick * 1.6} x2={780} y2={200 - tick * 1.6} stroke="#e2e8f0" />
-                        <text x={10} y={204 - tick * 1.6} fontSize={11} fill="#64748b">
+                        <line
+                          x1={40}
+                          y1={200 - tick * 1.6}
+                          x2={780}
+                          y2={200 - tick * 1.6}
+                          stroke="#e2e8f0"
+                        />
+                        <text
+                          x={10}
+                          y={204 - tick * 1.6}
+                          fontSize={11}
+                          fill="#64748b"
+                        >
                           {tick}%
                         </text>
                       </g>
@@ -498,7 +591,12 @@ export default function PeriodosPage() {
                         <polygon
                           points={[
                             ...confidencePoints.map((value, index) => {
-                              const x = confidencePoints.length === 1 ? 410 : 40 + (index / (confidencePoints.length - 1)) * 740;
+                              const x =
+                                confidencePoints.length === 1
+                                  ? 410
+                                  : 40 +
+                                    (index / (confidencePoints.length - 1)) *
+                                      740;
                               const y = 200 - value * 160;
                               return `${x.toFixed(2)},${y.toFixed(2)}`;
                             }),
@@ -510,7 +608,12 @@ export default function PeriodosPage() {
                         <polyline
                           points={confidencePoints
                             .map((value, index) => {
-                              const x = confidencePoints.length === 1 ? 410 : 40 + (index / (confidencePoints.length - 1)) * 740;
+                              const x =
+                                confidencePoints.length === 1
+                                  ? 410
+                                  : 40 +
+                                    (index / (confidencePoints.length - 1)) *
+                                      740;
                               const y = 200 - value * 160;
                               return `${x.toFixed(2)},${y.toFixed(2)}`;
                             })
@@ -526,10 +629,22 @@ export default function PeriodosPage() {
               </article>
 
               <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900">Ratio de deteccion</h3>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Ratio de deteccion
+                </h3>
                 <div className="mt-5 flex items-center justify-center">
-                  <svg viewBox="0 0 220 220" className="w-48 h-48">
-                    <circle cx={110} cy={110} r={78} fill="none" stroke="#e2e8f0" strokeWidth={24} />
+                  <svg
+                    viewBox="0 0 220 220"
+                    className="w-48 h-48"
+                  >
+                    <circle
+                      cx={110}
+                      cy={110}
+                      r={78}
+                      fill="none"
+                      stroke="#e2e8f0"
+                      strokeWidth={24}
+                    />
                     <circle
                       cx={110}
                       cy={110}
@@ -542,10 +657,20 @@ export default function PeriodosPage() {
                       strokeDashoffset={`${2 * Math.PI * 78 * (1 - detectionRate)}`}
                       transform="rotate(-90 110 110)"
                     />
-                    <text x={110} y={106} textAnchor="middle" className="fill-slate-900 text-3xl font-black">
+                    <text
+                      x={110}
+                      y={106}
+                      textAnchor="middle"
+                      className="fill-slate-900 text-3xl font-black"
+                    >
                       {(detectionRate * 100).toFixed(0)}%
                     </text>
-                    <text x={110} y={130} textAnchor="middle" className="fill-slate-500 text-sm">
+                    <text
+                      x={110}
+                      y={130}
+                      textAnchor="middle"
+                      className="fill-slate-500 text-sm"
+                    >
                       con detecciones
                     </text>
                   </svg>
@@ -554,25 +679,37 @@ export default function PeriodosPage() {
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900">Distribucion por clase</h3>
+              <h3 className="text-lg font-bold text-slate-900">
+                Distribucion por clase
+              </h3>
               <div className="mt-4 space-y-3">
                 {Object.entries(predictionSummary.summary).length === 0 ? (
-                  <p className="text-sm text-slate-500">No hay datos con los filtros actuales.</p>
+                  <p className="text-sm text-slate-500">
+                    No hay datos con los filtros actuales.
+                  </p>
                 ) : (
                   Object.entries(predictionSummary.summary)
                     .sort((a, b) => b[1] - a[1])
                     .map(([cls, count]) => {
-                      const percent = (count / Math.max(predictionSummary.total, 1)) * 100;
+                      const percent =
+                        (count / Math.max(predictionSummary.total, 1)) * 100;
                       return (
                         <div key={cls}>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-semibold text-slate-700">{diseaseName(cls)}</span>
-                            <span className="text-slate-500">{count} ({percent.toFixed(1)}%)</span>
+                            <span className="font-semibold text-slate-700">
+                              {diseaseName(cls)}
+                            </span>
+                            <span className="text-slate-500">
+                              {count} ({percent.toFixed(1)}%)
+                            </span>
                           </div>
                           <div className="mt-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full"
-                              style={{ width: `${clampPercent((count / maxClassCountFiltered) * 100)}%`, backgroundColor: diseaseColor(cls) }}
+                              style={{
+                                width: `${clampPercent((count / maxClassCountFiltered) * 100)}%`,
+                                backgroundColor: diseaseColor(cls),
+                              }}
                             />
                           </div>
                         </div>
@@ -584,7 +721,9 @@ export default function PeriodosPage() {
 
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredPredictions.map((pred) => {
-                const diagnosis = normalizeClass(pred.fase2_resumen?.clase_predicha);
+                const diagnosis = normalizeClass(
+                  pred.fase2_resumen?.clase_predicha,
+                );
                 const confidence = pred.fase2_resumen?.confianza ?? 0;
                 const hasMatches = Boolean(pred.fase1_resumen?.has_matches);
 
@@ -606,7 +745,9 @@ export default function PeriodosPage() {
                       </span>
                     </div>
                     <div className="p-4 space-y-2">
-                      <p className="text-xs text-slate-400">{formatDateTime(pred.fecha ?? pred.created_at)}</p>
+                      <p className="text-xs text-slate-400">
+                        {formatDateTime(pred.fecha ?? pred.created_at)}
+                      </p>
                       <div className="flex items-center justify-between gap-2">
                         <span
                           className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold text-white"
@@ -614,18 +755,25 @@ export default function PeriodosPage() {
                         >
                           {diseaseName(diagnosis)}
                         </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${confidenceClass(confidence)}`}>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-semibold ${confidenceClass(confidence)}`}
+                        >
                           {(confidence * 100).toFixed(1)}%
                         </span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                           className="h-full"
-                          style={{ width: `${clampPercent(confidence * 100)}%`, backgroundColor: diseaseColor(diagnosis) }}
+                          style={{
+                            width: `${clampPercent(confidence * 100)}%`,
+                            backgroundColor: diseaseColor(diagnosis),
+                          }}
                         />
                       </div>
                       <p className="text-xs text-slate-500">
-                        {hasMatches ? "Con detecciones en fase 1" : "Sin detecciones en fase 1"}
+                        {hasMatches
+                          ? "Con detecciones en fase 1"
+                          : "Sin detecciones en fase 1"}
                       </p>
                     </div>
                   </article>
@@ -645,27 +793,42 @@ export default function PeriodosPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-2xl font-black text-slate-900">Crear nuevo periodo</h2>
-            <p className="text-sm text-slate-500 mt-1">Formulario optimizado para registrar campañas rapidamente.</p>
+            <h2 className="text-2xl font-black text-slate-900">
+              Crear nuevo periodo
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Formulario optimizado para registrar campañas rapidamente.
+            </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700">Nombre de campana</label>
+              <label className="block text-sm font-semibold text-slate-700">
+                Nombre de campana
+              </label>
               <input
                 value={form.nombre}
-                onChange={(e) => setForm((prev) => ({ ...prev, nombre: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, nombre: e.target.value }))
+                }
                 placeholder="Ejemplo: Campana 2026-I"
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700">Descripcion breve</label>
+              <label className="block text-sm font-semibold text-slate-700">
+                Descripcion breve
+              </label>
               <input
                 value={form.descripcion}
-                onChange={(e) => setForm((prev) => ({ ...prev, descripcion: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, descripcion: e.target.value }))
+                }
                 placeholder="Objetivo, clima, zona o notas"
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               />
@@ -674,20 +837,28 @@ export default function PeriodosPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700">Fecha inicio</label>
+              <label className="block text-sm font-semibold text-slate-700">
+                Fecha inicio
+              </label>
               <input
                 type="date"
                 value={form.fecha_inicio}
-                onChange={(e) => setForm((prev) => ({ ...prev, fecha_inicio: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, fecha_inicio: e.target.value }))
+                }
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700">Fecha fin</label>
+              <label className="block text-sm font-semibold text-slate-700">
+                Fecha fin
+              </label>
               <input
                 type="date"
                 value={form.fecha_fin}
-                onChange={(e) => setForm((prev) => ({ ...prev, fecha_fin: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, fecha_fin: e.target.value }))
+                }
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               />
             </div>
@@ -722,8 +893,13 @@ export default function PeriodosPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-black text-slate-900">Periodos registrados</h2>
-            <p className="text-sm text-slate-500">Haz clic en un periodo para abrir sus predicciones y análisis avanzado.</p>
+            <h2 className="text-2xl font-black text-slate-900">
+              Periodos registrados
+            </h2>
+            <p className="text-sm text-slate-500">
+              Haz clic en un periodo para abrir sus predicciones y análisis
+              avanzado.
+            </p>
           </div>
           <input
             value={periodSearch}
@@ -736,7 +912,9 @@ export default function PeriodosPage() {
         {loading ? (
           <p className="text-slate-500">Cargando periodos...</p>
         ) : filteredPeriods.length === 0 ? (
-          <p className="text-slate-500">No se encontraron periodos con ese filtro.</p>
+          <p className="text-slate-500">
+            No se encontraron periodos con ese filtro.
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredPeriods.map((p) => {
@@ -752,8 +930,12 @@ export default function PeriodosPage() {
                   onClick={() => loadPredictionsForPeriod(p)}
                   className="text-left rounded-2xl border border-slate-200 bg-linear-to-br from-white to-slate-50 hover:to-sky-50 p-4 shadow-sm hover:shadow-lg transition-all"
                 >
-                  <p className="text-xs uppercase tracking-wider text-sky-700 font-semibold">Periodo #{p.id}</p>
-                  <h3 className="text-lg font-black text-slate-900 mt-1">{p.nombre}</h3>
+                  <p className="text-xs uppercase tracking-wider text-sky-700 font-semibold">
+                    Periodo #{p.id}
+                  </p>
+                  <h3 className="text-lg font-black text-slate-900 mt-1">
+                    {p.nombre}
+                  </h3>
                   <p className="text-xs text-slate-500 mt-1">
                     {formatDate(p.fecha_inicio)} - {formatDate(p.fecha_fin)}
                   </p>
@@ -768,7 +950,9 @@ export default function PeriodosPage() {
                     </div>
                     <div className="rounded-xl bg-white border border-slate-200 p-2">
                       <p className="text-[11px] text-slate-500">Conf.</p>
-                      <p className="font-black text-slate-900">{(confidence * 100).toFixed(0)}%</p>
+                      <p className="font-black text-slate-900">
+                        {(confidence * 100).toFixed(0)}%
+                      </p>
                     </div>
                   </div>
                   <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -787,25 +971,57 @@ export default function PeriodosPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-black text-slate-900">Evolucion entre campanas</h2>
-            <p className="text-sm text-slate-500">Comparativa avanzada de clases y volumen de predicciones por periodo.</p>
+            <h2 className="text-2xl font-black text-slate-900">
+              Evolucion entre campanas
+            </h2>
+            <p className="text-sm text-slate-500">
+              Comparativa avanzada de clases y volumen de predicciones por
+              periodo.
+            </p>
           </div>
-          {loadingEvolution && <p className="text-sm text-slate-500">Actualizando...</p>}
+          {loadingEvolution && (
+            <p className="text-sm text-slate-500">Actualizando...</p>
+          )}
         </div>
 
         {evolution.length === 0 ? (
-          <p className="text-sm text-slate-500 mt-4">Aun no hay datos para graficar.</p>
+          <p className="text-sm text-slate-500 mt-4">
+            Aun no hay datos para graficar.
+          </p>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5">
             <article className="xl:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="font-bold text-slate-800">Tendencia de enfermedades por campana</h3>
+              <h3 className="font-bold text-slate-800">
+                Tendencia de enfermedades por campana
+              </h3>
               <div className="mt-3 h-72">
-                <svg viewBox="0 0 900 320" className="w-full h-full">
-                  <rect x={0} y={0} width={900} height={320} rx={16} fill="#f8fafc" />
+                <svg
+                  viewBox="0 0 900 320"
+                  className="w-full h-full"
+                >
+                  <rect
+                    x={0}
+                    y={0}
+                    width={900}
+                    height={320}
+                    rx={16}
+                    fill="#f8fafc"
+                  />
                   {[0, 25, 50, 75, 100].map((tick) => (
                     <g key={tick}>
-                      <line x1={50} y1={280 - tick * 2.3} x2={860} y2={280 - tick * 2.3} stroke="#e2e8f0" />
-                      <text x={16} y={284 - tick * 2.3} fontSize={11} fill="#64748b">
+                      <line
+                        x1={50}
+                        y1={280 - tick * 2.3}
+                        x2={860}
+                        y2={280 - tick * 2.3}
+                        stroke="#e2e8f0"
+                      />
+                      <text
+                        x={16}
+                        y={284 - tick * 2.3}
+                        fontSize={11}
+                        fill="#64748b"
+                      >
                         {Math.round((tick / 100) * maxClassValue)}
                       </text>
                     </g>
@@ -813,8 +1029,12 @@ export default function PeriodosPage() {
 
                   {classSeries.map((series) => {
                     const points = series.values.map((value, index) => {
-                      const x = classSeries.length > 0 && evolution.length > 1 ? 60 + (index / (evolution.length - 1)) * 780 : 450;
-                      const y = 280 - (value / Math.max(maxClassValue, 1)) * 230;
+                      const x =
+                        classSeries.length > 0 && evolution.length > 1
+                          ? 60 + (index / (evolution.length - 1)) * 780
+                          : 450;
+                      const y =
+                        280 - (value / Math.max(maxClassValue, 1)) * 230;
                       return `${x.toFixed(2)},${y.toFixed(2)}`;
                     });
 
@@ -830,17 +1050,38 @@ export default function PeriodosPage() {
                         />
                         {points.map((point, idx) => {
                           const [x, y] = point.split(",").map(Number);
-                          return <circle key={`${series.cls}-${idx}`} cx={x} cy={y} r={3.6} fill={diseaseColor(series.cls)} />;
+                          return (
+                            <circle
+                              key={`${series.cls}-${idx}`}
+                              cx={x}
+                              cy={y}
+                              r={3.6}
+                              fill={diseaseColor(series.cls)}
+                            />
+                          );
                         })}
                       </g>
                     );
                   })}
 
                   {evolution.map((item, idx) => {
-                    const x = evolution.length > 1 ? 60 + (idx / (evolution.length - 1)) * 780 : 450;
-                    const label = item.periodoNombre.length > 12 ? `${item.periodoNombre.slice(0, 12)}...` : item.periodoNombre;
+                    const x =
+                      evolution.length > 1
+                        ? 60 + (idx / (evolution.length - 1)) * 780
+                        : 450;
+                    const label =
+                      item.periodoNombre.length > 12
+                        ? `${item.periodoNombre.slice(0, 12)}...`
+                        : item.periodoNombre;
                     return (
-                      <text key={item.periodoId} x={x} y={304} textAnchor="middle" fontSize={11} fill="#475569">
+                      <text
+                        key={item.periodoId}
+                        x={x}
+                        y={304}
+                        textAnchor="middle"
+                        fontSize={11}
+                        fill="#475569"
+                      >
                         {label}
                       </text>
                     );
@@ -853,18 +1094,32 @@ export default function PeriodosPage() {
               <h3 className="font-bold text-slate-800">Resumen por campana</h3>
               <div className="mt-3 space-y-3">
                 {evolution.map((item) => {
-                  const pct = periodTotals.totalPredictions > 0 ? (item.total / periodTotals.totalPredictions) * 100 : 0;
+                  const pct =
+                    periodTotals.totalPredictions > 0
+                      ? (item.total / periodTotals.totalPredictions) * 100
+                      : 0;
                   return (
-                    <div key={item.periodoId} className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div
+                      key={item.periodoId}
+                      className="rounded-xl border border-slate-200 bg-white p-3"
+                    >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-slate-800 text-sm">{item.periodoNombre}</p>
-                        <p className="text-xs text-slate-500">{item.total} pred.</p>
+                        <p className="font-semibold text-slate-800 text-sm">
+                          {item.periodoNombre}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {item.total} pred.
+                        </p>
                       </div>
                       <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-sky-500 rounded-full" style={{ width: `${clampPercent(pct)}%` }} />
+                        <div
+                          className="h-full bg-sky-500 rounded-full"
+                          style={{ width: `${clampPercent(pct)}%` }}
+                        />
                       </div>
                       <p className="mt-2 text-xs text-slate-500">
-                        Confianza: {(item.avgConfidence * 100).toFixed(1)}% | Detecciones: {item.detections}
+                        Confianza: {(item.avgConfidence * 100).toFixed(1)}% |
+                        Detecciones: {item.detections}
                       </p>
                     </div>
                   );

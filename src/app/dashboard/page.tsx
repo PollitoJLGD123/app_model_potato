@@ -146,7 +146,8 @@ export default function DashboardPage() {
 
   const donutArcs = useMemo(() => {
     const total = classDistribution.reduce((acc, [, value]) => acc + value, 0);
-    if (total === 0) return [] as Array<{ key: string; start: number; end: number }>;
+    if (total === 0)
+      return [] as Array<{ key: string; start: number; end: number }>;
 
     let cursor = 0;
     return classDistribution.map(([key, value]) => {
@@ -160,40 +161,76 @@ export default function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <section className="rounded-3xl p-6 md:p-8 bg-linear-to-br from-slate-900 via-cyan-900 to-emerald-700 text-white shadow-xl">
-        <p className="text-cyan-100 text-sm uppercase tracking-[0.18em] font-semibold">Dashboard ejecutivo</p>
-        <h1 className="text-3xl md:text-4xl font-black mt-1">Resumen inteligente de predicciones</h1>
+        <p className="text-cyan-100 text-sm uppercase tracking-[0.18em] font-semibold">
+          Dashboard ejecutivo
+        </p>
+        <h1 className="text-3xl md:text-4xl font-black mt-1">
+          Resumen inteligente de predicciones
+        </h1>
         <p className="text-cyan-100 mt-3 max-w-3xl">
-          Visualiza indicadores clave de campañas, enfermedades y actividad para tomar decisiones de manejo mas rapido.
+          Visualiza indicadores clave de campañas, enfermedades y actividad para
+          tomar decisiones de manejo mas rapido.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
           <div className="rounded-2xl bg-white/15 backdrop-blur border border-white/20 p-4">
             <p className="text-sm text-cyan-100">Predicciones totales</p>
-            <p className="text-3xl font-black mt-1">{loading ? "..." : totals.totalPredictions}</p>
+            <p className="text-3xl font-black mt-1">
+              {loading ? "..." : totals.totalPredictions}
+            </p>
           </div>
           <div className="rounded-2xl bg-white/15 backdrop-blur border border-white/20 p-4">
             <p className="text-sm text-cyan-100">Periodos activos</p>
-            <p className="text-3xl font-black mt-1">{loading ? "..." : periodos.length}</p>
+            <p className="text-3xl font-black mt-1">
+              {loading ? "..." : periodos.length}
+            </p>
           </div>
           <div className="rounded-2xl bg-white/15 backdrop-blur border border-white/20 p-4">
             <p className="text-sm text-cyan-100">Confianza promedio</p>
-            <p className="text-3xl font-black mt-1">{loading ? "..." : `${(totals.avgConfidence * 100).toFixed(1)}%`}</p>
+            <p className="text-3xl font-black mt-1">
+              {loading ? "..." : `${(totals.avgConfidence * 100).toFixed(1)}%`}
+            </p>
           </div>
         </div>
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <article className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-xl font-black text-slate-900">Tendencia mensual</h2>
-          <p className="text-sm text-slate-500 mt-1">Ultimos meses con mayor/menor actividad</p>
+          <h2 className="text-xl font-black text-slate-900">
+            Tendencia mensual
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Ultimos meses con mayor/menor actividad
+          </p>
 
           <div className="h-64 mt-4">
-            <svg viewBox="0 0 860 260" className="w-full h-full">
-              <rect x={0} y={0} width={860} height={260} rx={16} fill="#f8fafc" />
+            <svg
+              viewBox="0 0 860 260"
+              className="w-full h-full"
+            >
+              <rect
+                x={0}
+                y={0}
+                width={860}
+                height={260}
+                rx={16}
+                fill="#f8fafc"
+              />
               {[0, 25, 50, 75, 100].map((tick) => (
                 <g key={tick}>
-                  <line x1={52} y1={220 - tick * 2} x2={820} y2={220 - tick * 2} stroke="#e2e8f0" />
-                  <text x={18} y={224 - tick * 2} fontSize={11} fill="#64748b">
+                  <line
+                    x1={52}
+                    y1={220 - tick * 2}
+                    x2={820}
+                    y2={220 - tick * 2}
+                    stroke="#e2e8f0"
+                  />
+                  <text
+                    x={18}
+                    y={224 - tick * 2}
+                    fontSize={11}
+                    fill="#64748b"
+                  >
                     {Math.round((tick / 100) * maxMonthly)}
                   </text>
                 </g>
@@ -202,7 +239,10 @@ export default function DashboardPage() {
               <polyline
                 points={monthlyTrend
                   .map(([, value], idx) => {
-                    const x = monthlyTrend.length > 1 ? 60 + (idx / (monthlyTrend.length - 1)) * 740 : 430;
+                    const x =
+                      monthlyTrend.length > 1
+                        ? 60 + (idx / (monthlyTrend.length - 1)) * 740
+                        : 430;
                     const y = 220 - (value / Math.max(maxMonthly, 1)) * 200;
                     return `${x.toFixed(2)},${y.toFixed(2)}`;
                   })
@@ -214,12 +254,26 @@ export default function DashboardPage() {
               />
 
               {monthlyTrend.map(([month, value], idx) => {
-                const x = monthlyTrend.length > 1 ? 60 + (idx / (monthlyTrend.length - 1)) * 740 : 430;
+                const x =
+                  monthlyTrend.length > 1
+                    ? 60 + (idx / (monthlyTrend.length - 1)) * 740
+                    : 430;
                 const y = 220 - (value / Math.max(maxMonthly, 1)) * 200;
                 return (
                   <g key={month}>
-                    <circle cx={x} cy={y} r={4} fill="#0284c7" />
-                    <text x={x} y={244} textAnchor="middle" fontSize={11} fill="#475569">
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={4}
+                      fill="#0284c7"
+                    />
+                    <text
+                      x={x}
+                      y={244}
+                      textAnchor="middle"
+                      fontSize={11}
+                      fill="#475569"
+                    >
                       {formatMonth(month)}
                     </text>
                   </g>
@@ -230,10 +284,20 @@ export default function DashboardPage() {
         </article>
 
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-xl font-black text-slate-900">Distribucion por clase</h2>
+          <h2 className="text-xl font-black text-slate-900">
+            Distribucion por clase
+          </h2>
           <div className="mt-4 flex justify-center">
-            <svg viewBox="0 0 240 240" className="w-56 h-56">
-              <circle cx={120} cy={120} r={80} fill="#f1f5f9" />
+            <svg
+              viewBox="0 0 240 240"
+              className="w-56 h-56"
+            >
+              <circle
+                cx={120}
+                cy={120}
+                r={80}
+                fill="#f1f5f9"
+              />
               {donutArcs.map((arc) => {
                 const radius = 80;
                 const start = (arc.start - 90) * (Math.PI / 180);
@@ -244,13 +308,35 @@ export default function DashboardPage() {
                 const y2 = 120 + radius * Math.sin(end);
                 const largeArc = arc.end - arc.start > 180 ? 1 : 0;
                 const path = `M 120 120 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-                return <path key={arc.key} d={path} fill={diseaseColor(arc.key)} opacity={0.92} />;
+                return (
+                  <path
+                    key={arc.key}
+                    d={path}
+                    fill={diseaseColor(arc.key)}
+                    opacity={0.92}
+                  />
+                );
               })}
-              <circle cx={120} cy={120} r={42} fill="white" />
-              <text x={120} y={116} textAnchor="middle" className="fill-slate-900 text-xl font-black">
+              <circle
+                cx={120}
+                cy={120}
+                r={42}
+                fill="white"
+              />
+              <text
+                x={120}
+                y={116}
+                textAnchor="middle"
+                className="fill-slate-900 text-xl font-black"
+              >
                 {totals.totalPredictions}
               </text>
-              <text x={120} y={136} textAnchor="middle" className="fill-slate-500 text-xs">
+              <text
+                x={120}
+                y={136}
+                textAnchor="middle"
+                className="fill-slate-500 text-xs"
+              >
                 total
               </text>
             </svg>
@@ -258,14 +344,27 @@ export default function DashboardPage() {
 
           <div className="mt-3 space-y-2">
             {classDistribution.slice(0, 5).map(([key, value]) => {
-              const percent = totals.totalPredictions > 0 ? (value / totals.totalPredictions) * 100 : 0;
+              const percent =
+                totals.totalPredictions > 0
+                  ? (value / totals.totalPredictions) * 100
+                  : 0;
               return (
-                <div key={key} className="flex items-center justify-between text-sm">
+                <div
+                  key={key}
+                  className="flex items-center justify-between text-sm"
+                >
                   <span className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: diseaseColor(key) }} />
-                    <span className="text-slate-700 font-medium">{diseaseName(key)}</span>
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: diseaseColor(key) }}
+                    />
+                    <span className="text-slate-700 font-medium">
+                      {diseaseName(key)}
+                    </span>
                   </span>
-                  <span className="text-slate-500">{value} ({percent.toFixed(1)}%)</span>
+                  <span className="text-slate-500">
+                    {value} ({percent.toFixed(1)}%)
+                  </span>
                 </div>
               );
             })}
@@ -275,21 +374,36 @@ export default function DashboardPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-xl font-black text-slate-900">Periodos con mayor actividad</h2>
+          <h2 className="text-xl font-black text-slate-900">
+            Periodos con mayor actividad
+          </h2>
           <div className="mt-4 space-y-3">
             {periodSummary.length === 0 ? (
-              <p className="text-slate-500 text-sm">No hay actividad registrada aun.</p>
+              <p className="text-slate-500 text-sm">
+                No hay actividad registrada aun.
+              </p>
             ) : (
               periodSummary.map((item) => {
-                const pct = totals.totalPredictions > 0 ? (item.total / totals.totalPredictions) * 100 : 0;
+                const pct =
+                  totals.totalPredictions > 0
+                    ? (item.total / totals.totalPredictions) * 100
+                    : 0;
                 return (
-                  <div key={item.id} className="rounded-xl border border-slate-200 p-3">
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-slate-200 p-3"
+                  >
                     <div className="flex items-center justify-between gap-3 text-sm">
-                      <p className="font-semibold text-slate-800">{item.name}</p>
+                      <p className="font-semibold text-slate-800">
+                        {item.name}
+                      </p>
                       <p className="text-slate-500">{item.total} pred.</p>
                     </div>
                     <div className="mt-2 h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div className="h-full rounded-full bg-cyan-500" style={{ width: `${clampPercent(pct)}%` }} />
+                      <div
+                        className="h-full rounded-full bg-cyan-500"
+                        style={{ width: `${clampPercent(pct)}%` }}
+                      />
                     </div>
                   </div>
                 );
@@ -306,28 +420,36 @@ export default function DashboardPage() {
               className="rounded-xl border border-slate-200 bg-linear-to-br from-sky-50 to-cyan-50 p-4 hover:shadow-md transition-shadow"
             >
               <p className="font-bold text-slate-900">Modulos</p>
-              <p className="text-sm text-slate-500 mt-1">Gestion de modulos, lotes y surcos</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Gestion de modulos, lotes y surcos
+              </p>
             </Link>
             <Link
               href="/dashboard/periodos"
               className="rounded-xl border border-slate-200 bg-linear-to-br from-emerald-50 to-lime-50 p-4 hover:shadow-md transition-shadow"
             >
               <p className="font-bold text-slate-900">Periodos</p>
-              <p className="text-sm text-slate-500 mt-1">Campanas y evolucion de predicciones</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Campanas y evolucion de predicciones
+              </p>
             </Link>
             <Link
               href="/dashboard/realtime"
               className="rounded-xl border border-slate-200 bg-linear-to-br from-violet-50 to-fuchsia-50 p-4 hover:shadow-md transition-shadow"
             >
               <p className="font-bold text-slate-900">Tiempo real</p>
-              <p className="text-sm text-slate-500 mt-1">Evaluar hojas en vivo</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Evaluar hojas en vivo
+              </p>
             </Link>
             <Link
               href="/dashboard/history"
               className="rounded-xl border border-slate-200 bg-linear-to-br from-amber-50 to-orange-50 p-4 hover:shadow-md transition-shadow"
             >
               <p className="font-bold text-slate-900">Historial</p>
-              <p className="text-sm text-slate-500 mt-1">Auditar cada prediccion registrada</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Auditar cada prediccion registrada
+              </p>
             </Link>
           </div>
         </article>
