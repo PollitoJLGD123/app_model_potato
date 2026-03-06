@@ -7,6 +7,7 @@ import {
   evaluationImage,
   evaluationRoboflow,
   getSurcos,
+  getPeriodos,
 } from "@/service/evaluation";
 import { evaluarSurco } from "@/service/hierarchy";
 import {
@@ -15,6 +16,7 @@ import {
   RoboflowDetection,
   RoboflowPrediction,
   Surco,
+  Periodo,
 } from "@/types/evaluation";
 
 type LoadingStep = "idle" | "step1" | "step2";
@@ -34,14 +36,20 @@ const STORAGE_KEY_IMAGE = "evaluation-pending-image";
 const STORAGE_KEY_FILENAME = "evaluation-pending-filename";
 const STORAGE_KEY_TYPE = "evaluation-pending-type";
 
-function dataUrlToFile(dataUrl: string, filename: string, mimeType: string): File {
+function dataUrlToFile(
+  dataUrl: string,
+  filename: string,
+  mimeType: string,
+): File {
   const arr = dataUrl.split(",");
   const mime = arr[0].match(/:(.*?);/)?.[1] || mimeType || "image/jpeg";
   const bstr = atob(arr[1] || "");
   const n = bstr.length;
   const u8arr = new Uint8Array(n);
   for (let i = 0; i < n; i++) u8arr[i] = bstr.charCodeAt(i);
-  return new File([new Blob([u8arr], { type: mime })], filename, { type: mime });
+  return new File([new Blob([u8arr], { type: mime })], filename, {
+    type: mime,
+  });
 }
 
 export default function EvaluationCompletePage() {
@@ -65,6 +73,10 @@ export default function EvaluationCompletePage() {
   const [surcos, setSurcos] = useState<Surco[]>([]);
   const [selectedSurcoId, setSelectedSurcoId] = useState<number | null>(null);
   const [loadingSurcos, setLoadingSurcos] = useState<boolean>(true);
+
+  const [periodos, setPeriodos] = useState<Periodo[]>([]);
+  const [selectedPeriodoId, setSelectedPeriodoId] = useState<number | null>(null);
+  const [loadingPeriodos, setLoadingPeriodos] = useState<boolean>(true);
 
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
@@ -114,6 +126,23 @@ export default function EvaluationCompletePage() {
       }
     };
     loadSurcos();
+
+    const loadPeriodos = async () => {
+      try {
+        setLoadingPeriodos(true);
+        const resp = await getPeriodos();
+        setPeriodos(resp.data || []);
+        if (resp.data && resp.data.length > 0 && !surcoIdParam) {
+          setSelectedPeriodoId(resp.data[0].id);
+        }
+      } catch (err) {
+        console.error("Error loading periodos:", err);
+        toast.error("No se pudieron cargar los periodos");
+      } finally {
+        setLoadingPeriodos(false);
+      }
+    };
+    loadPeriodos();
   }, [hasHierarchyContext, surcoIdParam]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,6 +157,7 @@ export default function EvaluationCompletePage() {
     }
 
     setSelectedImage(file);
+    setSelectedPeriodoId(null);
     setError("");
     setRoboflowResult(null);
     setClassificationResult(null);
@@ -294,7 +324,12 @@ export default function EvaluationCompletePage() {
     if (hasHierarchyContext && moduloId && loteId && surcoIdParam) {
       try {
         setLoadingStep("step1");
-        const res = await evaluarSurco(moduloId, loteId, surcoIdParam, selectedImage);
+        const res = await evaluarSurco(
+          moduloId,
+          loteId,
+          surcoIdParam,
+          selectedImage,
+        );
         if (res.data) {
           toast.success("Evaluación completada");
           router.push(
@@ -316,6 +351,7 @@ export default function EvaluationCompletePage() {
       const detectionResponse = await evaluationRoboflow(
         selectedImage,
         selectedSurcoId || undefined,
+        selectedPeriodoId || undefined,
       );
       setRoboflowResult(detectionResponse.data);
 
@@ -336,7 +372,10 @@ export default function EvaluationCompletePage() {
       setRoboflowMessage(detectionResponse.message || "Deteccion completada");
 
       setLoadingStep("step2");
-      const classificationResponse = await evaluationImage(selectedImage);
+      const classificationResponse = await evaluationImage(
+        selectedImage,
+        selectedPeriodoId ?? undefined,
+      );
       setClassificationResult(classificationResponse.data.clasificacion);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -449,10 +488,46 @@ export default function EvaluationCompletePage() {
           </div>
 
           <div className="mt-6 space-y-3">
+            {/* Periodo Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Periodo (opcional)
+              </label>
+              {loadingPeriodos ? (
+                <p className="text-sm text-gray-500">Cargando periodos...</p>
+              ) : periodos.length > 0 ? (
+                <select
+                  value={selectedPeriodoId || ""}
+                  onChange={(e) =>
+                    setSelectedPeriodoId(
+                      e.target.value ? parseInt(e.target.value) : null,
+                    )
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">Sin periodo</option>
+                  {periodos.map((p) => (
+                    <option
+                      key={p.id}
+                      value={p.id}
+                    >
+                      {p.nombre} ({p.fecha_inicio} – {p.fecha_fin})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  No hay periodos disponibles
+                </p>
+              )}
+            </div>
+
             {/* Surco Selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {hasHierarchyContext ? "Surco seleccionado" : "Seleccionar Surco (Opcional)"}
+                {hasHierarchyContext
+                  ? "Surco seleccionado"
+                  : "Seleccionar Surco (Opcional)"}
               </label>
               {hasHierarchyContext ? (
                 <p className="text-sm text-emerald-700 font-medium py-2 px-3 bg-emerald-50 border border-emerald-200 rounded-lg">

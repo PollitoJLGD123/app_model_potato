@@ -73,6 +73,7 @@ export interface PrediccionRecord {
   id: number;
   surco_id: number | null;
   usuario_id: number;
+  periodo_id: number | null;
   imagen_url: string;
   fase1_resumen: Fase1Resumen | null;
   fase1_payload: RoboflowDetection | null;
@@ -109,4 +110,15 @@ export interface SurcosResponse {
   data: Surco[];
   message: string;
   status: "success" | "error";
+}
+
+export interface Periodo {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  fecha_inicio: string;
+  fecha_fin: string;
+  usuario_id: number;
+  created_at: string | null;
+  updated_at: string | null;
 }
