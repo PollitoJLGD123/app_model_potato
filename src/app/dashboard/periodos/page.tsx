@@ -386,9 +386,8 @@ export default function PeriodosPage() {
         Gestor de periodos y evolucion
       </h1>
       <p className="text-cyan-100 mt-3 max-w-3xl">
-        Revisa tendencias por periodo, abre las predicciones y
-        filtra resultados para analizar confianza, detecciones y clases de
-        enfermedad.
+        Revisa tendencias por periodo, abre las predicciones y filtra resultados
+        para analizar confianza, detecciones y clases de enfermedad.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
         <div className="rounded-2xl bg-white/15 backdrop-blur border border-white/20 p-4">

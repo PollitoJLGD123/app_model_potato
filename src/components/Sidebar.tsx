@@ -33,17 +33,27 @@ type NavGroup = {
 const navGroups: NavGroup[] = [
   {
     heading: "General",
-    items: [
-      { label: "Dashboard", path: "/dashboard", icon: <Layers /> },
-    ],
+    items: [{ label: "Dashboard", path: "/dashboard", icon: <Layers /> }],
   },
   {
     heading: "Evaluación",
     items: [
-      { label: "Evaluación Completa", path: "/dashboard/evaluation-complete", icon: <CheckCircle /> },
-      { label: "Evaluación por Bloques", path: "/dashboard/evaluation-batch", icon: <CheckCircle /> },
+      {
+        label: "Evaluación Completa",
+        path: "/dashboard/evaluation-complete",
+        icon: <CheckCircle />,
+      },
+      {
+        label: "Evaluación por Bloques",
+        path: "/dashboard/evaluation-batch",
+        icon: <CheckCircle />,
+      },
       { label: "Tiempo Real", path: "/dashboard/realtime", icon: <Camera /> },
-      { label: "Historial de Predicciones", path: "/dashboard/history", icon: <Rows3 /> },
+      {
+        label: "Historial de Predicciones",
+        path: "/dashboard/history",
+        icon: <Rows3 />,
+      },
     ],
   },
   {
@@ -56,15 +66,31 @@ const navGroups: NavGroup[] = [
   {
     heading: "Diagnóstico",
     items: [
-      { label: "Diagnóstico Global", path: "/dashboard/diagnosis", icon: <Activity /> },
-      { label: "Historial de Diagnósticos", path: "/dashboard/diagnosis-history", icon: <Rows3 /> },
+      {
+        label: "Diagnóstico Global",
+        path: "/dashboard/diagnosis",
+        icon: <Activity />,
+      },
+      {
+        label: "Historial de Diagnósticos",
+        path: "/dashboard/diagnosis-history",
+        icon: <Rows3 />,
+      },
     ],
   },
   {
     heading: "Clima y Datos",
     items: [
-      { label: "Recomendaciones Climáticas", path: "/dashboard/recommendations", icon: <Info /> },
-      { label: "Dataset y Modelos", path: "/dashboard/dataset", icon: <ImageIcon /> },
+      {
+        label: "Recomendaciones Climáticas",
+        path: "/dashboard/recommendations",
+        icon: <Info />,
+      },
+      {
+        label: "Dataset y Modelos",
+        path: "/dashboard/dataset",
+        icon: <ImageIcon />,
+      },
     ],
   },
 ];
@@ -98,7 +124,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <div className="p-3 border-b border-slate-200 bg-white overflow-y-auto flex-1">
         {navGroups.map((group) => (
-          <div key={group.heading} className="mb-3">
+          <div
+            key={group.heading}
+            className="mb-3"
+          >
             <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
               {group.heading}
             </p>
@@ -106,10 +135,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               {group.items.map((item) => {
                 let active = false;
                 if (item.path === "/dashboard") {
-                  active = pathname === "/dashboard" || pathname === "/dashboard/";
+                  active =
+                    pathname === "/dashboard" || pathname === "/dashboard/";
                 } else {
                   active =
-                    pathname === item.path || pathname.startsWith(item.path + "/");
+                    pathname === item.path ||
+                    pathname.startsWith(item.path + "/");
                 }
                 const baseClasses =
                   `w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 transition-colors ` +
@@ -125,7 +156,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   >
                     {item.icon &&
                       React.cloneElement(item.icon as React.ReactElement<any>, {
-                        className: active ? "text-emerald-700" : "text-slate-400",
+                        className: active
+                          ? "text-emerald-700"
+                          : "text-slate-400",
                         size: 18,
                       })}
                     <span>{item.label}</span>

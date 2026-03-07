@@ -39,7 +39,9 @@ export default function SurcosPage() {
   const [numero, setNumero] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [diagnosingSurcoId, setDiagnosingSurcoId] = useState<number | null>(null);
+  const [diagnosingSurcoId, setDiagnosingSurcoId] = useState<number | null>(
+    null,
+  );
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historySurco, setHistorySurco] = useState<Surco | null>(null);
@@ -98,7 +100,11 @@ export default function SurcosPage() {
     setHistoryLoading(true);
     setHistorySurco(surco);
     try {
-      const res = await getSurcoDiagnosisHistory(moduloId, loteId, String(surco.id));
+      const res = await getSurcoDiagnosisHistory(
+        moduloId,
+        loteId,
+        String(surco.id),
+      );
       setHistoryReports(res.data ?? []);
     } catch {
       toast.error("No se pudo cargar el historial de diagnóstico");
@@ -111,7 +117,11 @@ export default function SurcosPage() {
   const handleGenerateDiagnosis = async (surco: Surco) => {
     try {
       setDiagnosingSurcoId(surco.id);
-      const predRes = await getPrediccionesBySurco(moduloId, loteId, String(surco.id));
+      const predRes = await getPrediccionesBySurco(
+        moduloId,
+        loteId,
+        String(surco.id),
+      );
       const predicciones = (predRes.data ?? []) as Prediccion[];
 
       if (!predicciones.length) {
@@ -129,7 +139,11 @@ export default function SurcosPage() {
       toast.success("Diagnóstico de surco guardado");
 
       if (historyOpen && historySurco?.id === surco.id) {
-        const res = await getSurcoDiagnosisHistory(moduloId, loteId, String(surco.id));
+        const res = await getSurcoDiagnosisHistory(
+          moduloId,
+          loteId,
+          String(surco.id),
+        );
         setHistoryReports(res.data ?? []);
       }
     } catch {
@@ -206,7 +220,10 @@ export default function SurcosPage() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleCreateSurco} className="p-4 space-y-4">
+            <form
+              onSubmit={handleCreateSurco}
+              className="p-4 space-y-4"
+            >
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Número *
@@ -277,11 +294,16 @@ export default function SurcosPage() {
               {historyLoading ? (
                 <p className="text-sm text-slate-500">Cargando historial...</p>
               ) : historyReports.length === 0 ? (
-                <p className="text-sm text-slate-400">No hay diagnósticos guardados.</p>
+                <p className="text-sm text-slate-400">
+                  No hay diagnósticos guardados.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {historyReports.map((r) => (
-                    <div key={r.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                    <div
+                      key={r.id}
+                      className="border border-slate-200 rounded-lg p-3 bg-slate-50"
+                    >
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="text-sm font-semibold text-slate-700">
                           {new Date(r.fecha_reporte).toLocaleString("es-PE")}
@@ -294,7 +316,8 @@ export default function SurcosPage() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-600">
-                        Tendencia: {r.tendencia} · Recomendaciones: {r.recomendaciones.length}
+                        Tendencia: {r.tendencia} · Recomendaciones:{" "}
+                        {r.recomendaciones.length}
                       </p>
                     </div>
                   ))}

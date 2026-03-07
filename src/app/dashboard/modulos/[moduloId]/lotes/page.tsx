@@ -94,9 +94,13 @@ export default function LotesPage() {
     const surcos = (surcosRes.data ?? []) as Surco[];
 
     const predGroups = await Promise.all(
-      surcos.map((s) => getPrediccionesBySurco(moduloId, String(loteIdParam), String(s.id))),
+      surcos.map((s) =>
+        getPrediccionesBySurco(moduloId, String(loteIdParam), String(s.id)),
+      ),
     );
-    const predicciones = predGroups.flatMap((g) => g.data ?? []) as Prediccion[];
+    const predicciones = predGroups.flatMap(
+      (g) => g.data ?? [],
+    ) as Prediccion[];
 
     return {
       predicciones,
@@ -122,7 +126,9 @@ export default function LotesPage() {
   const handleGenerateDiagnosis = async (lote: Lote) => {
     try {
       setDiagnosingLoteId(lote.id);
-      const { predicciones, surcosMonitoreados } = await fetchLotePredicciones(lote.id);
+      const { predicciones, surcosMonitoreados } = await fetchLotePredicciones(
+        lote.id,
+      );
 
       if (!predicciones.length) {
         toast.info("Este lote no tiene predicciones para diagnosticar");
@@ -215,7 +221,10 @@ export default function LotesPage() {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleCreateLote} className="p-4 space-y-4">
+            <form
+              onSubmit={handleCreateLote}
+              className="p-4 space-y-4"
+            >
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Identificador *
@@ -285,11 +294,16 @@ export default function LotesPage() {
               {historyLoading ? (
                 <p className="text-sm text-slate-500">Cargando historial...</p>
               ) : historyReports.length === 0 ? (
-                <p className="text-sm text-slate-400">No hay diagnósticos guardados.</p>
+                <p className="text-sm text-slate-400">
+                  No hay diagnósticos guardados.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {historyReports.map((r) => (
-                    <div key={r.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                    <div
+                      key={r.id}
+                      className="border border-slate-200 rounded-lg p-3 bg-slate-50"
+                    >
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="text-sm font-semibold text-slate-700">
                           {new Date(r.fecha_reporte).toLocaleString("es-PE")}
@@ -302,7 +316,8 @@ export default function LotesPage() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-600">
-                        Tendencia: {r.tendencia} · Recomendaciones: {r.recomendaciones.length}
+                        Tendencia: {r.tendencia} · Recomendaciones:{" "}
+                        {r.recomendaciones.length}
                       </p>
                     </div>
                   ))}

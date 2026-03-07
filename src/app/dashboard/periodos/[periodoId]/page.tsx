@@ -123,8 +123,11 @@ function analyzePeriodRecords(
   for (const cls of Object.keys(byDisease)) {
     const s = byDisease[cls];
     s.pct =
-      withClass.length > 0 ? Math.round((s.count / withClass.length) * 1000) / 10 : 0;
-    s.avgConf = s.count > 0 ? Math.round((s.avgConf / s.count) * 1000) / 1000 : 0;
+      withClass.length > 0
+        ? Math.round((s.count / withClass.length) * 1000) / 10
+        : 0;
+    s.avgConf =
+      s.count > 0 ? Math.round((s.avgConf / s.count) * 1000) / 1000 : 0;
     s.avgDets = s.count > 0 ? Math.round((s.avgDets / s.count) * 100) / 100 : 0;
   }
 
@@ -178,7 +181,9 @@ function analyzePeriodRecords(
 
   // Surcos únicos monitoreados
   const surcosMonitoreados = [
-    ...new Set(records.map((r) => r.surco_id).filter((id): id is number => id !== null)),
+    ...new Set(
+      records.map((r) => r.surco_id).filter((id): id is number => id !== null),
+    ),
   ];
 
   return {
@@ -238,7 +243,11 @@ function buildRecommendations(a: PeriodAnalysis): Recommendation[] {
         `(confianza promedio ${(lateBlight.avgConf * 100).toFixed(1)}%). ` +
         "Aplique fungicidas sistémicos como Metalaxil o Cimoxanil cada 7-10 días. " +
         "Elimine plantas severamente infectadas para evitar propagación de esporas.",
-      etiquetas: ["late_blight", "phytophthora", lateBlight.pct >= 50 ? "critico" : "alto"],
+      etiquetas: [
+        "late_blight",
+        "phytophthora",
+        lateBlight.pct >= 50 ? "critico" : "alto",
+      ],
     });
     if (lateBlight.totalBlight > 5) {
       recs.push({
@@ -383,17 +392,40 @@ const PRIORIDAD_STYLES: Record<
   string,
   { bg: string; border: string; icon: string; text: string }
 > = {
-  urgente: { bg: "bg-red-50", border: "border-red-300", icon: "🚨", text: "text-red-800" },
-  alta: { bg: "bg-amber-50", border: "border-amber-300", icon: "⚠️", text: "text-amber-800" },
-  media: { bg: "bg-blue-50", border: "border-blue-300", icon: "💡", text: "text-blue-800" },
-  baja: { bg: "bg-green-50", border: "border-green-300", icon: "✅", text: "text-green-800" },
+  urgente: {
+    bg: "bg-red-50",
+    border: "border-red-300",
+    icon: "🚨",
+    text: "text-red-800",
+  },
+  alta: {
+    bg: "bg-amber-50",
+    border: "border-amber-300",
+    icon: "⚠️",
+    text: "text-amber-800",
+  },
+  media: {
+    bg: "bg-blue-50",
+    border: "border-blue-300",
+    icon: "💡",
+    text: "text-blue-800",
+  },
+  baja: {
+    bg: "bg-green-50",
+    border: "border-green-300",
+    icon: "✅",
+    text: "text-green-800",
+  },
 };
 
 const TENDENCIA_LABEL: Record<string, { text: string; color: string }> = {
   mejorando: { text: "Mejorando", color: "text-green-600" },
   empeorando: { text: "Empeorando", color: "text-red-600" },
   estable: { text: "Estable", color: "text-slate-600" },
-  insuficiente_datos: { text: "Sin datos suficientes", color: "text-slate-400" },
+  insuficiente_datos: {
+    text: "Sin datos suficientes",
+    color: "text-slate-400",
+  },
 };
 
 // ── Componente de historial ──────────────────────────────────────
@@ -412,7 +444,10 @@ function HistorySection({ reports }: { reports: PeriodoReportRecord[] }) {
   return (
     <div className="space-y-3">
       {reports.map((r) => (
-        <div key={r.id} className="border border-slate-200 rounded-xl overflow-hidden">
+        <div
+          key={r.id}
+          className="border border-slate-200 rounded-xl overflow-hidden"
+        >
           <button
             onClick={() => setExpanded(expanded === r.id ? null : r.id)}
             className="w-full flex items-center justify-between px-5 py-4 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
@@ -426,21 +461,29 @@ function HistorySection({ reports }: { reports: PeriodoReportRecord[] }) {
                   r.indice_severidad > 60
                     ? "bg-red-100 text-red-700"
                     : r.indice_severidad > 30
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-green-100 text-green-700"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-green-100 text-green-700"
                 }`}
               >
                 Severidad {r.indice_severidad.toFixed(1)}%
               </span>
               <span className="text-xs text-slate-500">
-                {r.total_predicciones} predicciones · {r.recomendaciones.length} recomendaciones
+                {r.total_predicciones} predicciones · {r.recomendaciones.length}{" "}
+                recomendaciones
               </span>
             </div>
             <svg
               className={`w-4 h-4 text-slate-400 transition-transform ${expanded === r.id ? "rotate-180" : ""}`}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
 
@@ -452,18 +495,29 @@ function HistorySection({ reports }: { reports: PeriodoReportRecord[] }) {
                   { label: "Total predicciones", value: r.total_predicciones },
                   { label: "Con enfermedad", value: r.con_enfermedad },
                   { label: "Saludables", value: r.saludables },
-                  { label: "Confianza prom.", value: `${(r.confianza_promedio * 100).toFixed(1)}%` },
+                  {
+                    label: "Confianza prom.",
+                    value: `${(r.confianza_promedio * 100).toFixed(1)}%`,
+                  },
                   { label: "Detecciones tot.", value: r.total_detecciones },
                   { label: "Días activos", value: r.dias_activos },
-                  { label: "Frec. monitoreo", value: `${r.frecuencia_monitoreo}/día` },
+                  {
+                    label: "Frec. monitoreo",
+                    value: `${r.frecuencia_monitoreo}/día`,
+                  },
                   {
                     label: "Tendencia",
                     value: TENDENCIA_LABEL[r.tendencia]?.text ?? r.tendencia,
                   },
                 ].map(({ label, value }) => (
-                  <div key={label} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                  <div
+                    key={label}
+                    className="bg-slate-50 rounded-lg p-3 border border-slate-100"
+                  >
                     <p className="text-xs text-slate-500">{label}</p>
-                    <p className="text-sm font-bold text-slate-800 mt-0.5">{value}</p>
+                    <p className="text-sm font-bold text-slate-800 mt-0.5">
+                      {value}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -476,23 +530,30 @@ function HistorySection({ reports }: { reports: PeriodoReportRecord[] }) {
                       Distribución al momento del diagnóstico
                     </p>
                     <div className="space-y-1.5">
-                      {Object.entries(r.distribucion_enfermedades).map(([cls, stats]) => (
-                        <div key={cls} className="flex items-center gap-2">
+                      {Object.entries(r.distribucion_enfermedades).map(
+                        ([cls, stats]) => (
                           <div
-                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${classColor(cls)}`}
-                          />
-                          <span className="text-xs text-slate-600 w-44 truncate">{dn(cls)}</span>
-                          <div className="flex-1 bg-slate-100 rounded-full h-1.5">
+                            key={cls}
+                            className="flex items-center gap-2"
+                          >
                             <div
-                              className={`h-1.5 rounded-full ${classColor(cls)}`}
-                              style={{ width: `${stats.pct}%` }}
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${classColor(cls)}`}
                             />
+                            <span className="text-xs text-slate-600 w-44 truncate">
+                              {dn(cls)}
+                            </span>
+                            <div className="flex-1 bg-slate-100 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${classColor(cls)}`}
+                                style={{ width: `${stats.pct}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-700 w-10 text-right">
+                              {stats.pct}%
+                            </span>
                           </div>
-                          <span className="text-xs font-semibold text-slate-700 w-10 text-right">
-                            {stats.pct}%
-                          </span>
-                        </div>
-                      ))}
+                        ),
+                      )}
                     </div>
                   </div>
                 )}
@@ -504,7 +565,8 @@ function HistorySection({ reports }: { reports: PeriodoReportRecord[] }) {
                 </p>
                 <div className="space-y-2">
                   {r.recomendaciones.map((rec) => {
-                    const st = PRIORIDAD_STYLES[rec.prioridad] ?? PRIORIDAD_STYLES.media;
+                    const st =
+                      PRIORIDAD_STYLES[rec.prioridad] ?? PRIORIDAD_STYLES.media;
                     return (
                       <div
                         key={rec.id}
@@ -521,7 +583,9 @@ function HistorySection({ reports }: { reports: PeriodoReportRecord[] }) {
                             {rec.prioridad}
                           </span>
                         </div>
-                        <p className={`text-xs leading-relaxed ${st.text}`}>{rec.contenido}</p>
+                        <p className={`text-xs leading-relaxed ${st.text}`}>
+                          {rec.contenido}
+                        </p>
                         {rec.etiquetas && rec.etiquetas.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {rec.etiquetas.map((tag) => (
@@ -642,7 +706,9 @@ export default function PeriodoDetailPage({
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm">Cargando datos del periodo...</p>
+          <p className="text-slate-500 text-sm">
+            Cargando datos del periodo...
+          </p>
         </div>
       </div>
     );
@@ -652,7 +718,6 @@ export default function PeriodoDetailPage({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
-
       {/* Encabezado */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
@@ -671,7 +736,9 @@ export default function PeriodoDetailPage({
               {" — "}
               {new Date(periodo.fecha_fin).toLocaleDateString("es-PE")}
               {periodo.descripcion && (
-                <span className="ml-2 text-slate-400">· {periodo.descripcion}</span>
+                <span className="ml-2 text-slate-400">
+                  · {periodo.descripcion}
+                </span>
               )}
             </p>
           )}
@@ -687,9 +754,12 @@ export default function PeriodoDetailPage({
 
       {predicciones.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-slate-400 text-lg">No hay predicciones en este periodo.</p>
+          <p className="text-slate-400 text-lg">
+            No hay predicciones en este periodo.
+          </p>
           <p className="text-slate-300 text-sm mt-1">
-            Realiza evaluaciones asignadas a este periodo para generar el análisis.
+            Realiza evaluaciones asignadas a este periodo para generar el
+            análisis.
           </p>
         </div>
       ) : (
@@ -706,7 +776,10 @@ export default function PeriodoDetailPage({
                 label: "Con enfermedad",
                 value: analysis.conEnfermedad,
                 sub: `${analysis.severityScore.toFixed(1)}% del total`,
-                accent: analysis.conEnfermedad > 0 ? "text-red-600" : "text-slate-800",
+                accent:
+                  analysis.conEnfermedad > 0
+                    ? "text-red-600"
+                    : "text-slate-800",
               },
               {
                 label: "Saludables",
@@ -721,9 +794,16 @@ export default function PeriodoDetailPage({
                 accent: trendInfo?.color,
               },
             ].map(({ label, value, sub, accent }) => (
-              <div key={label} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <div
+                key={label}
+                className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm"
+              >
                 <p className="text-xs text-slate-500 font-medium">{label}</p>
-                <p className={`text-3xl font-bold mt-1 ${accent ?? "text-slate-800"}`}>{value}</p>
+                <p
+                  className={`text-3xl font-bold mt-1 ${accent ?? "text-slate-800"}`}
+                >
+                  {value}
+                </p>
                 <p className="text-xs text-slate-400 mt-1">{sub}</p>
               </div>
             ))}
@@ -732,18 +812,46 @@ export default function PeriodoDetailPage({
           {/* Métricas secundarias */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Confianza promedio", value: `${(analysis.overallAvgConfidence * 100).toFixed(1)}%` },
+              {
+                label: "Confianza promedio",
+                value: `${(analysis.overallAvgConfidence * 100).toFixed(1)}%`,
+              },
               { label: "Total detecciones", value: analysis.totalDetections },
-              { label: "Dets. por imagen", value: analysis.avgDetectionsPerImage.toFixed(2) },
-              { label: "Consenso modelos", value: `${analysis.consensusRate.toFixed(0)}%` },
-              { label: "Frec. monitoreo", value: `${analysis.frecuenciaMonitoreo}/día` },
-              { label: "Surcos evaluados", value: analysis.surcosMonitoreados.length },
-              { label: "Enfermedad principal", value: analysis.enfermedadPredominante ? dn(analysis.enfermedadPredominante) : "Ninguna" },
-              { label: "Sin clasificar", value: analysis.total - analysis.withClassification },
+              {
+                label: "Dets. por imagen",
+                value: analysis.avgDetectionsPerImage.toFixed(2),
+              },
+              {
+                label: "Consenso modelos",
+                value: `${analysis.consensusRate.toFixed(0)}%`,
+              },
+              {
+                label: "Frec. monitoreo",
+                value: `${analysis.frecuenciaMonitoreo}/día`,
+              },
+              {
+                label: "Surcos evaluados",
+                value: analysis.surcosMonitoreados.length,
+              },
+              {
+                label: "Enfermedad principal",
+                value: analysis.enfermedadPredominante
+                  ? dn(analysis.enfermedadPredominante)
+                  : "Ninguna",
+              },
+              {
+                label: "Sin clasificar",
+                value: analysis.total - analysis.withClassification,
+              },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-slate-50 rounded-lg border border-slate-100 px-4 py-3">
+              <div
+                key={label}
+                className="bg-slate-50 rounded-lg border border-slate-100 px-4 py-3"
+              >
                 <p className="text-xs text-slate-500">{label}</p>
-                <p className="text-sm font-bold text-slate-800 mt-0.5 truncate">{value}</p>
+                <p className="text-sm font-bold text-slate-800 mt-0.5 truncate">
+                  {value}
+                </p>
               </div>
             ))}
           </div>
@@ -761,13 +869,21 @@ export default function PeriodoDetailPage({
                     <div key={cls}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${classColor(cls)}`} />
-                          <span className="text-sm font-medium text-slate-700">{dn(cls)}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${classBadge(cls)}`}>
+                          <div
+                            className={`w-3 h-3 rounded-full ${classColor(cls)}`}
+                          />
+                          <span className="text-sm font-medium text-slate-700">
+                            {dn(cls)}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full ${classBadge(cls)}`}
+                          >
                             {stats.count} muestras
                           </span>
                         </div>
-                        <span className="text-sm font-bold text-slate-700">{stats.pct}%</span>
+                        <span className="text-sm font-bold text-slate-700">
+                          {stats.pct}%
+                        </span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-2">
                         <div
@@ -784,7 +900,10 @@ export default function PeriodoDetailPage({
                         </span>
                         {stats.primera_deteccion && (
                           <span className="text-xs text-slate-400">
-                            Primera: {new Date(stats.primera_deteccion).toLocaleDateString("es-PE")}
+                            Primera:{" "}
+                            {new Date(
+                              stats.primera_deteccion,
+                            ).toLocaleDateString("es-PE")}
                           </span>
                         )}
                       </div>
@@ -800,8 +919,9 @@ export default function PeriodoDetailPage({
               Recomendaciones actuales
             </h2>
             <p className="text-slate-500 text-sm mb-4">
-              Generadas a partir de {analysis.withClassification} evaluaciones clasificadas.
-              Guarda el diagnóstico para conservarlas en el historial.
+              Generadas a partir de {analysis.withClassification} evaluaciones
+              clasificadas. Guarda el diagnóstico para conservarlas en el
+              historial.
             </p>
             <div className="space-y-3">
               {recommendations.map((rec, i) => {
@@ -813,14 +933,18 @@ export default function PeriodoDetailPage({
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-lg">{st.icon}</span>
-                      <span className={`font-semibold ${st.text}`}>{rec.titulo}</span>
+                      <span className={`font-semibold ${st.text}`}>
+                        {rec.titulo}
+                      </span>
                       <span
                         className={`ml-auto text-xs font-bold uppercase px-2 py-0.5 rounded-full ${st.bg} ${st.text} border ${st.border}`}
                       >
                         {rec.prioridad}
                       </span>
                     </div>
-                    <p className={`text-sm leading-relaxed ${st.text}`}>{rec.contenido}</p>
+                    <p className={`text-sm leading-relaxed ${st.text}`}>
+                      {rec.contenido}
+                    </p>
                     {rec.etiquetas.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {rec.etiquetas.map((tag) => (
@@ -847,7 +971,8 @@ export default function PeriodoDetailPage({
           Historial de diagnósticos guardados
         </h2>
         <p className="text-slate-500 text-sm mb-4">
-          Cada entrada incluye el snapshot de métricas y las recomendaciones emitidas en ese momento.
+          Cada entrada incluye el snapshot de métricas y las recomendaciones
+          emitidas en ese momento.
         </p>
         <HistorySection reports={reports} />
       </div>

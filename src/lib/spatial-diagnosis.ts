@@ -44,8 +44,12 @@ function isHealthyClass(cls: string): boolean {
   return cls.toLowerCase().includes("healthy");
 }
 
-export function analyzeSpatialPredicciones(records: Prediccion[]): SpatialAnalysis {
-  const withClass = records.filter((r) => Boolean(r.fase2_resumen?.clase_predicha));
+export function analyzeSpatialPredicciones(
+  records: Prediccion[],
+): SpatialAnalysis {
+  const withClass = records.filter((r) =>
+    Boolean(r.fase2_resumen?.clase_predicha),
+  );
 
   const byDisease: Record<string, SpatialDiseaseStats> = {};
   let totalConf = 0;
@@ -61,8 +65,9 @@ export function analyzeSpatialPredicciones(records: Prediccion[]): SpatialAnalys
 
     const fase1 = (r.fase1_payload ?? {}) as Fase1Payload;
     const blightCount =
-      fase1.predictions?.filter((p) => p.class?.toLowerCase().includes("blight")).length ??
-      0;
+      fase1.predictions?.filter((p) =>
+        p.class?.toLowerCase().includes("blight"),
+      ).length ?? 0;
 
     const fase2 = (r.fase2_payload ?? {}) as Fase2Payload;
     const hasConsensus = fase2.resumen_comparativo?.consenso ?? false;
@@ -90,8 +95,10 @@ export function analyzeSpatialPredicciones(records: Prediccion[]): SpatialAnalys
     if (currentDate) {
       const firstDate = byDisease[cls].primera_deteccion;
       const lastDate = byDisease[cls].ultima_deteccion;
-      if (!firstDate || currentDate < firstDate) byDisease[cls].primera_deteccion = currentDate;
-      if (!lastDate || currentDate > lastDate) byDisease[cls].ultima_deteccion = currentDate;
+      if (!firstDate || currentDate < firstDate)
+        byDisease[cls].primera_deteccion = currentDate;
+      if (!lastDate || currentDate > lastDate)
+        byDisease[cls].ultima_deteccion = currentDate;
     }
 
     totalConf += conf;
@@ -101,7 +108,8 @@ export function analyzeSpatialPredicciones(records: Prediccion[]): SpatialAnalys
 
   for (const cls of Object.keys(byDisease)) {
     const s = byDisease[cls];
-    s.pct = withClass.length > 0 ? round((s.count / withClass.length) * 100, 1) : 0;
+    s.pct =
+      withClass.length > 0 ? round((s.count / withClass.length) * 100, 1) : 0;
     s.avgConf = s.count > 0 ? round(s.avgConf / s.count, 3) : 0;
     s.avgDets = s.count > 0 ? round(s.avgDets / s.count, 2) : 0;
   }
@@ -144,12 +152,19 @@ export function analyzeSpatialPredicciones(records: Prediccion[]): SpatialAnalys
     total_predicciones: records.length,
     con_enfermedad: conEnfermedad,
     saludables,
-    confianza_promedio: withClass.length > 0 ? round(totalConf / withClass.length, 3) : 0,
+    confianza_promedio:
+      withClass.length > 0 ? round(totalConf / withClass.length, 3) : 0,
     total_detecciones: totalDetections,
     promedio_detecciones_por_imagen:
       records.length > 0 ? round(totalDetections / records.length, 2) : 0,
-    tasa_consenso: withClass.length > 0 ? round((consensusCount / withClass.length) * 100, 1) : 0,
-    indice_severidad: withClass.length > 0 ? round((conEnfermedad / withClass.length) * 100, 1) : 0,
+    tasa_consenso:
+      withClass.length > 0
+        ? round((consensusCount / withClass.length) * 100, 1)
+        : 0,
+    indice_severidad:
+      withClass.length > 0
+        ? round((conEnfermedad / withClass.length) * 100, 1)
+        : 0,
     tendencia,
     enfermedad_predominante: enfermedadPredominante,
     distribucion_enfermedades: byDisease,
