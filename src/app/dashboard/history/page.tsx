@@ -100,22 +100,22 @@ export default function HistoryPage() {
       const diagnosis = pred.fase2_resumen?.clase_predicha ?? "Sin clasificar";
       const confidence = pred.fase2_resumen?.confianza ?? 0;
       const mejor_modelo = pred.fase2_resumen?.modelo ?? "N/A";
-    tempContainer.style.position = "absolute";
-    tempContainer.style.top = "-9999px";
-    tempContainer.style.left = "-9999px";
-    tempContainer.style.width = "800px";
-    tempContainer.style.backgroundColor = "#ffffff";
-    tempContainer.style.fontFamily = "Arial, sans-serif";
-    tempContainer.style.padding = "40px";
-    tempContainer.style.color = "#000";
+      tempContainer.style.position = "absolute";
+      tempContainer.style.top = "-9999px";
+      tempContainer.style.left = "-9999px";
+      tempContainer.style.width = "800px";
+      tempContainer.style.backgroundColor = "#ffffff";
+      tempContainer.style.fontFamily = "Arial, sans-serif";
+      tempContainer.style.padding = "40px";
+      tempContainer.style.color = "#000";
 
-    // Contenedor de imagen
-    const imgContainer = document.createElement("div");
-    imgContainer.style.textAlign = "center";
-    imgContainer.style.marginBottom = "30px";
+      // Contenedor de imagen
+      const imgContainer = document.createElement("div");
+      imgContainer.style.textAlign = "center";
+      imgContainer.style.marginBottom = "30px";
 
-    const img = document.createElement("img");
-    img.src = pred.imagen_url;
+      const img = document.createElement("img");
+      img.src = pred.imagen_url;
       img.style.maxWidth = "100%";
       img.style.maxHeight = "250px";
       img.style.borderRadius = "8px";
@@ -991,6 +991,11 @@ export default function HistoryPage() {
                 <div className="p-4 flex-1 flex flex-col">
                   <p className="text-xs text-slate-400 mb-2">
                     {formatDate(pred.fecha ?? pred.created_at)}
+                    {pred.periodo_id ? (
+                      <span className="ml-2 text-xs text-blue-500">
+                        Periodo #{pred.periodo_id}
+                      </span>
+                    ) : null}
                   </p>
 
                   <div className="flex items-center justify-between mb-2">

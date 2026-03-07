@@ -7,12 +7,14 @@ import {
   evaluationImage,
   evaluationRoboflow,
   getSurcos,
+  getPeriodos,
 } from "@/service/evaluation";
 import {
   MultiModelEvaluationResult,
   RoboflowDetection,
   RoboflowPrediction,
   Surco,
+  Periodo,
 } from "@/types/evaluation";
 
 // ── Roboflow inferencejs config ─────────────────────────────────────────────
@@ -79,7 +81,9 @@ function normalizePredictions(raw: unknown): LivePrediction[] {
     if (Array.isArray(preds)) arr = preds;
   }
   return arr
-    .filter((p): p is Record<string, unknown> => p != null && typeof p === "object")
+    .filter(
+      (p): p is Record<string, unknown> => p != null && typeof p === "object",
+    )
     .map(normalizePrediction);
 }
 
@@ -237,6 +241,12 @@ export default function RealtimePage() {
   const [selectedSurcoId, setSelectedSurcoId] = useState<number | null>(null);
   const [loadingSurcos, setLoadingSurcos] = useState(true);
 
+  const [periodos, setPeriodos] = useState<Periodo[]>([]);
+  const [selectedPeriodoId, setSelectedPeriodoId] = useState<number | null>(
+    null,
+  );
+  const [loadingPeriodos, setLoadingPeriodos] = useState(true);
+
   const imageRef = useRef<HTMLImageElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -260,6 +270,25 @@ export default function RealtimePage() {
       }
     };
     loadSurcos();
+
+    // load periodos
+    const loadPeriodos = async () => {
+      try {
+        setLoadingPeriodos(true);
+        const resp = await getPeriodos();
+        const pd = resp.data ?? [];
+        setPeriodos(pd);
+        if (pd.length > 0) {
+          setSelectedPeriodoId(pd[0].id);
+        }
+      } catch (err) {
+        console.error("Error cargando periodos:", err);
+        toast.error("No se pudieron cargar los periodos");
+      } finally {
+        setLoadingPeriodos(false);
+      }
+    };
+    loadPeriodos();
   }, []);
 
   // ── Limpieza al desmontar ──────────────────────────────────────────────
@@ -445,6 +474,7 @@ export default function RealtimePage() {
       const detectionResponse = await evaluationRoboflow(
         file,
         selectedSurcoId ?? undefined,
+        selectedPeriodoId ?? undefined,
       );
       setRoboflowResult(detectionResponse.data);
       const rbf = detectionResponse.data;
@@ -461,7 +491,10 @@ export default function RealtimePage() {
 
       setRoboflowMessage(detectionResponse.message || "Deteccion completada");
       setLoadingStep("step2");
-      const classificationResponse = await evaluationImage(file);
+      const classificationResponse = await evaluationImage(
+        file,
+        selectedPeriodoId ?? undefined,
+      );
       setClassificationResult(classificationResponse.data.clasificacion);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -665,6 +698,40 @@ export default function RealtimePage() {
                     <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                     En vivo
                   </div>
+                )}
+              </div>
+
+              {/* Selector de periodo */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Periodo (opcional)
+                </label>
+                {loadingPeriodos ? (
+                  <p className="text-sm text-gray-500">Cargando periodos...</p>
+                ) : periodos.length > 0 ? (
+                  <select
+                    value={selectedPeriodoId ?? ""}
+                    onChange={(e) =>
+                      setSelectedPeriodoId(
+                        e.target.value ? parseInt(e.target.value, 10) : null,
+                      )
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">Sin periodo</option>
+                    {periodos.map((p) => (
+                      <option
+                        key={p.id}
+                        value={p.id}
+                      >
+                        {p.nombre} ({p.fecha_inicio} – {p.fecha_fin})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm text-amber-600">
+                    No hay periodos disponibles. Crea uno para agrupar.
+                  </p>
                 )}
               </div>
 

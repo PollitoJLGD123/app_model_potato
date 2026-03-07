@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { evaluationImage } from "@/service/evaluation";
+import { useState, useRef, useEffect } from "react";
+import { evaluationImage, getPeriodos } from "@/service/evaluation";
 import {
   MultiModelEvaluationResult,
   ModelResult,
+  Periodo,
 } from "@/types/evaluation";
 
 const MODEL_DISPLAY: Record<string, { label: string; color: string }> = {
@@ -49,9 +50,31 @@ export default function EvaluationPage() {
   const [result, setResult] = useState<MultiModelEvaluationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [periodos, setPeriodos] = useState<Periodo[]>([]);
+  const [selectedPeriodoId, setSelectedPeriodoId] = useState<number | null>(
+    null,
+  );
+  const [loadingPeriodos, setLoadingPeriodos] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // load periodos once when component mounts
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoadingPeriodos(true);
+        const resp = await getPeriodos();
+        setPeriodos(resp.data || []);
+      } catch (err) {
+        console.error("Error cargando periodos", err);
+      } finally {
+        setLoadingPeriodos(false);
+      }
+    };
+    load();
+  }, []);
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedPeriodoId(null);
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -79,7 +102,10 @@ export default function EvaluationPage() {
     setError("");
 
     try {
-      const response = await evaluationImage(selectedImage);
+      const response = await evaluationImage(
+        selectedImage,
+        selectedPeriodoId ?? undefined,
+      );
       setResult(response.data.clasificacion);
     } catch (err: any) {
       setError(
@@ -100,9 +126,7 @@ export default function EvaluationPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const winner = result
-    ? result.resultados[result.mejor_modelo_global]
-    : null;
+  const winner = result ? result.resultados[result.mejor_modelo_global] : null;
 
   return (
     <div className="p-8">
@@ -184,6 +208,40 @@ export default function EvaluationPage() {
             )}
           </div>
 
+          {/* Periodo selector */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Periodo (opcional)
+            </label>
+            {loadingPeriodos ? (
+              <p className="text-sm text-gray-500">Cargando periodos...</p>
+            ) : periodos.length > 0 ? (
+              <select
+                value={selectedPeriodoId ?? ""}
+                onChange={(e) =>
+                  setSelectedPeriodoId(
+                    e.target.value ? parseInt(e.target.value) : null,
+                  )
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">Sin periodo</option>
+                {periodos.map((p) => (
+                  <option
+                    key={p.id}
+                    value={p.id}
+                  >
+                    {p.nombre} ({p.fecha_inicio} – {p.fecha_fin})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No hay periodos disponibles
+              </p>
+            )}
+          </div>
+
           <div className="mt-6">
             <button
               onClick={handleSubmit}
@@ -235,7 +293,9 @@ export default function EvaluationPage() {
           {result && winner ? (
             <div className="space-y-6">
               {/* Resultado ganador */}
-              <div className={`p-5 rounded-xl border-2 ${getBorderStyle(winner.clase_predicha)}`}>
+              <div
+                className={`p-5 rounded-xl border-2 ${getBorderStyle(winner.clase_predicha)}`}
+              >
                 <div className="flex items-center gap-2 mb-1">
                   {winner.clase_predicha.includes("healthy") ? (
                     <svg
@@ -296,7 +356,8 @@ export default function EvaluationPage() {
               {/* Predicciones del modelo ganador */}
               <div>
                 <h4 className="text-sm font-semibold text-slate-700 mb-3">
-                  Predicciones ({getModelMeta(result.mejor_modelo_global).label})
+                  Predicciones ({getModelMeta(result.mejor_modelo_global).label}
+                  )
                 </h4>
                 <div className="space-y-2">
                   {Object.entries(winner.todas_predicciones)
@@ -387,10 +448,19 @@ export default function EvaluationPage() {
                           <div className="mt-3 grid grid-cols-4 gap-2">
                             {(
                               [
-                                ["Accuracy", model.metricas_entrenamiento.accuracy],
-                                ["Precision", model.metricas_entrenamiento.precision],
+                                [
+                                  "Accuracy",
+                                  model.metricas_entrenamiento.accuracy,
+                                ],
+                                [
+                                  "Precision",
+                                  model.metricas_entrenamiento.precision,
+                                ],
                                 ["Recall", model.metricas_entrenamiento.recall],
-                                ["F1-Score", model.metricas_entrenamiento.f1_score],
+                                [
+                                  "F1-Score",
+                                  model.metricas_entrenamiento.f1_score,
+                                ],
                               ] as [string, number][]
                             ).map(([label, val]) => (
                               <div
@@ -434,7 +504,9 @@ export default function EvaluationPage() {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <p>Los resultados apareceran aqui despues de evaluar una imagen</p>
+              <p>
+                Los resultados apareceran aqui despues de evaluar una imagen
+              </p>
             </div>
           )}
         </div>

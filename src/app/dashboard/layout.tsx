@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Leaf, Menu } from "@/components/ui-icons";
+import Sidebar from "@/components/Sidebar";
 
 export default function DashboardLayout({
   children,
@@ -31,10 +32,7 @@ export default function DashboardLayout({
     );
   }
 
-  const isActive = (path: string) =>
-    pathname === path
-      ? "bg-emerald-100 text-emerald-700"
-      : "text-slate-700 hover:bg-slate-100";
+  // sidebar handled by dedicated component
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -81,67 +79,10 @@ export default function DashboardLayout({
           />
         )}
 
-        <aside
-          className={`w-72 bg-white border-r border-slate-200 shrink-0 flex flex-col transition-all h-full ${isSidebarOpen ? "block absolute z-20 shadow-xl" : "hidden lg:block"} lg:relative sticky top-0`}
-        >
-          <div className="p-3 border-b border-slate-200 bg-white space-y-1">
-            <button
-              onClick={() => router.push("/dashboard/modulos")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${pathname === "/dashboard/modulos" ? "bg-emerald-100 text-emerald-700" : "text-slate-700 hover:bg-slate-100"}`}
-            >
-              Dashboard
-            </button>
-
-            <button
-              onClick={() => router.push("/dashboard/evaluation-complete")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/evaluation-complete")}`}
-            >
-              Evaluación Completa
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/evaluation-batch")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/evaluation-batch")}`}
-            >
-              📂 Evaluación por Bloques
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/realtime")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/realtime")}`}
-            >
-              📹 Tiempo Real
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/recommendations")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/recommendations")}`}
-            >
-              🌿 Recomendaciones
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/dataset")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/dataset")}`}
-            >
-              📊 Dataset y Modelos
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/modulos")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${pathname.startsWith("/dashboard/modulos") ? "bg-emerald-100 text-emerald-700" : "text-slate-700 hover:bg-slate-100"}`}
-            >
-              📁 Módulos
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/history")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/history")}`}
-            >
-              🕘 Historial
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/diagnosis")}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive("/dashboard/diagnosis")}`}
-            >
-              🩺 Diagnóstico del Cultivo
-            </button>
-          </div>
-        </aside>
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
 
         <main className="flex-1 overflow-y-auto w-full">{children}</main>
       </div>
