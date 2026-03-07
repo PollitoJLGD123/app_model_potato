@@ -49,6 +49,8 @@ const navItems: NavItem[] = [
     path: "/dashboard/diagnosis",
     icon: <Info />,
   },
+  { label: "Historial de Diagnósticos", path: "/dashboard/diagnosis-history", icon: <ArrowLeft /> },
+  { label: "Evaluacion por Bloques", path: "/dashboard/evaluation-batch", icon: <ArrowLeft /> },
 ];
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
