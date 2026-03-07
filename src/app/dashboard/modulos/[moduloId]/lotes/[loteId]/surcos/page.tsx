@@ -4,12 +4,25 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  createSurcoDiagnosis,
   createSurco,
   getModulo,
   getLotesByModulo,
+  getPrediccionesBySurco,
+  getSurcoDiagnosisHistory,
   getSurcosByLote,
 } from "@/service/hierarchy";
-import { Modulo, Lote, Surco } from "@/types/hierarchy";
+import {
+  Modulo,
+  Lote,
+  Prediccion,
+  Surco,
+  SurcoReportRecord,
+} from "@/types/hierarchy";
+import {
+  analyzeSpatialPredicciones,
+  buildSpatialRecommendations,
+} from "@/lib/spatial-diagnosis";
 import { toast } from "sonner";
 import { ArrowLeft, Rows3, ChevronRight, Plus, X } from "@/components/ui-icons";
 
@@ -26,6 +39,11 @@ export default function SurcosPage() {
   const [numero, setNumero] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [diagnosingSurcoId, setDiagnosingSurcoId] = useState<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historySurco, setHistorySurco] = useState<Surco | null>(null);
+  const [historyReports, setHistoryReports] = useState<SurcoReportRecord[]>([]);
 
   const loadData = async () => {
     if (!moduloId || !loteId) return;
@@ -72,6 +90,52 @@ export default function SurcosPage() {
       toast.error("Error al crear el surco");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openHistory = async (surco: Surco) => {
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    setHistorySurco(surco);
+    try {
+      const res = await getSurcoDiagnosisHistory(moduloId, loteId, String(surco.id));
+      setHistoryReports(res.data ?? []);
+    } catch {
+      toast.error("No se pudo cargar el historial de diagnóstico");
+      setHistoryReports([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleGenerateDiagnosis = async (surco: Surco) => {
+    try {
+      setDiagnosingSurcoId(surco.id);
+      const predRes = await getPrediccionesBySurco(moduloId, loteId, String(surco.id));
+      const predicciones = (predRes.data ?? []) as Prediccion[];
+
+      if (!predicciones.length) {
+        toast.info("Este surco no tiene predicciones para diagnosticar");
+        return;
+      }
+
+      const analysis = analyzeSpatialPredicciones(predicciones);
+      const recomendaciones = buildSpatialRecommendations(analysis);
+
+      await createSurcoDiagnosis(moduloId, loteId, String(surco.id), {
+        ...analysis,
+        recomendaciones,
+      });
+      toast.success("Diagnóstico de surco guardado");
+
+      if (historyOpen && historySurco?.id === surco.id) {
+        const res = await getSurcoDiagnosisHistory(moduloId, loteId, String(surco.id));
+        setHistoryReports(res.data ?? []);
+      }
+    } catch {
+      toast.error("No se pudo guardar el diagnóstico del surco");
+    } finally {
+      setDiagnosingSurcoId(null);
     }
   };
 
@@ -190,6 +254,57 @@ export default function SurcosPage() {
         </div>
       )}
 
+      {historyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">
+                  Historial de diagnosticos
+                </h2>
+                <p className="text-sm text-slate-500">
+                  Surco: {historySurco?.numero ?? "-"}
+                </p>
+              </div>
+              <button
+                onClick={() => setHistoryOpen(false)}
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[70vh]">
+              {historyLoading ? (
+                <p className="text-sm text-slate-500">Cargando historial...</p>
+              ) : historyReports.length === 0 ? (
+                <p className="text-sm text-slate-400">No hay diagnósticos guardados.</p>
+              ) : (
+                <div className="space-y-3">
+                  {historyReports.map((r) => (
+                    <div key={r.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="text-sm font-semibold text-slate-700">
+                          {new Date(r.fecha_reporte).toLocaleString("es-PE")}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold">
+                          Severidad {r.indice_severidad.toFixed(1)}%
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {r.total_predicciones} predicciones
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Tendencia: {r.tendencia} · Recomendaciones: {r.recomendaciones.length}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {surcos.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
           <Rows3 className="mx-auto h-12 w-12 text-slate-300 mb-4" />
@@ -197,28 +312,51 @@ export default function SurcosPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {surcos.map((surco) => (
-            <Link
-              key={surco.id}
-              href={`/dashboard/modulos/${moduloId}/lotes/${loteId}/surcos/${surco.id}/predicciones`}
-              className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all cursor-pointer group flex items-center justify-between p-6"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-xl flex items-center justify-center group-hover:bg-sky-100 transition-colors">
-                  <Rows3 size={24} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800 text-lg">
-                    Surco {surco.numero}
-                  </h3>
-                  <p className="text-sm text-slate-500 line-clamp-1">
-                    {surco.descripcion || "Sin descripción"}
-                  </p>
+          {surcos.map((surco) => {
+            const diagnosing = diagnosingSurcoId === surco.id;
+            return (
+              <div
+                key={surco.id}
+                className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all"
+              >
+                <Link
+                  href={`/dashboard/modulos/${moduloId}/lotes/${loteId}/surcos/${surco.id}/predicciones`}
+                  className="group flex items-center justify-between p-6"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-xl flex items-center justify-center group-hover:bg-sky-100 transition-colors">
+                      <Rows3 size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-lg">
+                        Surco {surco.numero}
+                      </h3>
+                      <p className="text-sm text-slate-500 line-clamp-1">
+                        {surco.descripcion || "Sin descripción"}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
+                </Link>
+
+                <div className="px-6 pb-5 flex items-center gap-2">
+                  <button
+                    onClick={() => handleGenerateDiagnosis(surco)}
+                    disabled={diagnosing}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                  >
+                    {diagnosing ? "Generando..." : "Generar diagnostico"}
+                  </button>
+                  <button
+                    onClick={() => openHistory(surco)}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100"
+                  >
+                    Ver historial
+                  </button>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
-            </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

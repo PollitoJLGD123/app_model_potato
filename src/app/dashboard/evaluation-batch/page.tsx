@@ -133,7 +133,10 @@ export default function EvaluationBatchPage() {
     pending: { text: "Pendiente", color: "bg-slate-100 text-slate-700" },
     processing: { text: "Procesando", color: "bg-blue-100 text-blue-700" },
     done: { text: "Completado", color: "bg-emerald-100 text-emerald-700" },
-    skipped: { text: "Sin clasificación", color: "bg-amber-100 text-amber-700" },
+    skipped: {
+      text: "Sin clasificación",
+      color: "bg-amber-100 text-amber-700",
+    },
     error: { text: "Error", color: "bg-red-100 text-red-700" },
   };
 
@@ -146,7 +149,7 @@ export default function EvaluationBatchPage() {
           </h1>
           <p className="text-slate-500 mt-1 text-sm">
             Analiza múltiples imágenes de hojas de papa en un solo flujo. Para
-            cada imagen se ejecuta primero la detección con Roboflow y luego la
+            cada imagen se ejecuta primero la detección con YoloV8 y luego la
             clasificación con los modelos de enfermedad.
           </p>
         </div>
@@ -190,9 +193,7 @@ export default function EvaluationBatchPage() {
 
             const bestModelKey = result?.mejor_modelo_global;
             const bestModel =
-              bestModelKey && result
-                ? result.resultados[bestModelKey]
-                : null;
+              bestModelKey && result ? result.resultados[bestModelKey] : null;
 
             return (
               <div
@@ -224,7 +225,7 @@ export default function EvaluationBatchPage() {
                   {/* Paso 1: Detección */}
                   <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
                     <p className="text-xs font-semibold text-slate-700 mb-1">
-                      Paso 1 — Detección (Roboflow)
+                      Paso 1 — Detección (YoloV8)
                     </p>
                     {detection ? (
                       <div className="text-xs text-slate-600 space-y-1">
@@ -273,8 +274,7 @@ export default function EvaluationBatchPage() {
                         {bestModel && bestModelKey && (
                           <div className="mb-1">
                             <p className="text-[11px] text-emerald-600 font-semibold">
-                              Mejor modelo:{" "}
-                              {getModelMeta(bestModelKey).label}
+                              Mejor modelo: {getModelMeta(bestModelKey).label}
                             </p>
                             <p className="text-sm font-bold text-slate-800 mt-0.5">
                               {getDiseaseName(bestModel.clase_predicha)}
@@ -338,4 +338,3 @@ export default function EvaluationBatchPage() {
     </div>
   );
 }
-

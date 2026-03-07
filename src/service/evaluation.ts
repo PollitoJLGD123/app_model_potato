@@ -5,6 +5,11 @@ import {
   PredictionHistoryResponse,
   SurcosResponse,
   DiagnosisRecommendationsResponse,
+  Periodo,
+  PeriodoReportsResponse,
+  CreatePeriodoDiagnosisPayload,
+  CreatePrediccionRecommendationPayload,
+  PrediccionRecommendationsResponse,
 } from "@/types/evaluation";
 
 export const evaluationImage = async (
@@ -108,3 +113,53 @@ export const getDiagnosisRecommendations =
     );
     return response.data;
   };
+
+export const createPeriodoDiagnosis = async (
+  periodoId: number,
+  payload: CreatePeriodoDiagnosisPayload,
+): Promise<{ data: any; status: string; message: string }> => {
+  const response = await api.post(`/periodos/${periodoId}/diagnosis`, payload);
+  return response.data;
+};
+
+export const getPeriodoDiagnosisHistory = async (
+  periodoId: number,
+): Promise<PeriodoReportsResponse> => {
+  const response = await api.get<PeriodoReportsResponse>(
+    `/periodos/${periodoId}/diagnosis`,
+  );
+  return response.data;
+};
+
+export const getPeriodoById = async (
+  periodoId: number,
+): Promise<{ data: Periodo; status: string; message: string }> => {
+  const response = await api.get<{
+    data: Periodo;
+    status: string;
+    message: string;
+  }>(`/periodos/${periodoId}`);
+  return response.data;
+};
+
+// ── Recomendaciones por predicción individual ─────────────────────
+
+export const createPrediccionRecommendation = async (
+  prediccionId: number,
+  payload: CreatePrediccionRecommendationPayload,
+): Promise<{ data: unknown; status: string; message: string }> => {
+  const response = await api.post(
+    `/evaluation/predicciones/${prediccionId}/recommendation`,
+    payload,
+  );
+  return response.data;
+};
+
+export const getPrediccionRecommendations = async (
+  prediccionId: number,
+): Promise<PrediccionRecommendationsResponse> => {
+  const response = await api.get<PrediccionRecommendationsResponse>(
+    `/evaluation/predicciones/${prediccionId}/recommendation`,
+  );
+  return response.data;
+};

@@ -168,7 +168,7 @@ export default function DashboardPage() {
           Resumen inteligente de predicciones
         </h1>
         <p className="text-cyan-100 mt-3 max-w-3xl">
-          Visualiza indicadores clave de campañas, enfermedades y actividad para
+          Visualiza indicadores clave de periodos, enfermedades y actividad para
           tomar decisiones de manejo mas rapido.
         </p>
 
@@ -430,7 +430,7 @@ export default function DashboardPage() {
             >
               <p className="font-bold text-slate-900">Periodos</p>
               <p className="text-sm text-slate-500 mt-1">
-                Campanas y evolucion de predicciones
+                Periodos y evolucion de predicciones
               </p>
             </Link>
             <Link

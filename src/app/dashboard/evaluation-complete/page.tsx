@@ -159,7 +159,6 @@ export default function EvaluationCompletePage() {
     }
 
     setSelectedImage(file);
-    setSelectedPeriodoId(null);
     setError("");
     setRoboflowResult(null);
     setClassificationResult(null);
@@ -353,8 +352,8 @@ export default function EvaluationCompletePage() {
       setClassificationResult(null);
       const detectionResponse = await evaluationRoboflow(
         selectedImage,
-        selectedSurcoId || undefined,
-        selectedPeriodoId || undefined,
+        selectedSurcoId ?? undefined,
+        selectedPeriodoId ?? undefined,
       );
       setRoboflowResult(detectionResponse.data);
 
@@ -406,7 +405,7 @@ export default function EvaluationCompletePage() {
     hasHierarchyContext && loadingStep === "step1"
       ? "Evaluando imagen..."
       : loadingStep === "step1"
-        ? "Paso 1/2: detectando zonas con Roboflow..."
+        ? "Paso 1/2: detectando zonas..."
         : loadingStep === "step2"
           ? "Paso 2/2: clasificando estado de la hoja..."
           : "";
@@ -794,7 +793,9 @@ export default function EvaluationCompletePage() {
                       ([key, result]) => {
                         const meta = getModelMeta(key);
                         const isBest =
-                          key === classificationResult.resumen_comparativo.modelo_mas_confiado;
+                          key ===
+                          classificationResult.resumen_comparativo
+                            .modelo_mas_confiado;
                         return (
                           <div
                             key={key}

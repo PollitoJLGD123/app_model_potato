@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   createPeriodo,
@@ -79,6 +80,7 @@ function clampPercent(value: number): number {
 }
 
 export default function PeriodosPage() {
+  const router = useRouter();
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -167,7 +169,7 @@ export default function PeriodosPage() {
 
       setEvolution(entries);
     } catch {
-      toast.error("No se pudo generar la evolucion por campañas");
+      toast.error("No se pudo generar la evolucion por periodos");
     } finally {
       setLoadingEvolution(false);
     }
@@ -378,13 +380,13 @@ export default function PeriodosPage() {
   const Hero = (
     <section className="rounded-3xl p-6 md:p-8 bg-linear-to-br from-slate-900 via-sky-900 to-cyan-700 text-white shadow-xl">
       <p className="text-cyan-200 text-sm tracking-[0.18em] uppercase font-semibold">
-        Campanas
+        Periodos
       </p>
       <h1 className="text-3xl md:text-4xl font-black mt-1">
         Gestor de periodos y evolucion
       </h1>
       <p className="text-cyan-100 mt-3 max-w-3xl">
-        Revisa tendencias por campana, abre las predicciones por periodo y
+        Revisa tendencias por periodo, abre las predicciones y
         filtra resultados para analizar confianza, detecciones y clases de
         enfermedad.
       </p>
@@ -797,7 +799,7 @@ export default function PeriodosPage() {
               Crear nuevo periodo
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Formulario optimizado para registrar campañas rapidamente.
+              Formulario optimizado para registrar periodos rapidamente.
             </p>
           </div>
         </div>
@@ -809,14 +811,14 @@ export default function PeriodosPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-slate-700">
-                Nombre de campana
+                Nombre del periodo
               </label>
               <input
                 value={form.nombre}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, nombre: e.target.value }))
                 }
-                placeholder="Ejemplo: Campana 2026-I"
+                placeholder="Ejemplo: Periodo 2026-I"
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               />
             </div>
@@ -877,7 +879,7 @@ export default function PeriodosPage() {
               className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2.5"
               onClick={() => {
                 setForm({
-                  nombre: `Campana ${new Date().getFullYear()}-${periodos.length + 1}`,
+                  nombre: `Periodo ${new Date().getFullYear()}-${periodos.length + 1}`,
                   fecha_inicio: "",
                   fecha_fin: "",
                   descripcion: "Periodo generado con plantilla rapida",
@@ -925,10 +927,9 @@ export default function PeriodosPage() {
               const detectionPct = total > 0 ? (detections / total) * 100 : 0;
 
               return (
-                <button
+                <div
                   key={p.id}
-                  onClick={() => loadPredictionsForPeriod(p)}
-                  className="text-left rounded-2xl border border-slate-200 bg-linear-to-br from-white to-slate-50 hover:to-sky-50 p-4 shadow-sm hover:shadow-lg transition-all"
+                  className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm hover:shadow-lg transition-all flex flex-col"
                 >
                   <p className="text-xs uppercase tracking-wider text-sky-700 font-semibold">
                     Periodo #{p.id}
@@ -937,7 +938,7 @@ export default function PeriodosPage() {
                     {p.nombre}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    {formatDate(p.fecha_inicio)} - {formatDate(p.fecha_fin)}
+                    {formatDate(p.fecha_inicio)} — {formatDate(p.fecha_fin)}
                   </p>
                   <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                     <div className="rounded-xl bg-white border border-slate-200 p-2">
@@ -961,7 +962,22 @@ export default function PeriodosPage() {
                       style={{ width: `${clampPercent(detectionPct)}%` }}
                     />
                   </div>
-                </button>
+                  {/* Acciones */}
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => loadPredictionsForPeriod(p)}
+                      className="flex-1 text-sm font-semibold text-sky-700 border border-sky-200 rounded-lg py-1.5 hover:bg-sky-50 transition-colors"
+                    >
+                      Ver predicciones
+                    </button>
+                    <button
+                      onClick={() => router.push(`/dashboard/periodos/${p.id}`)}
+                      className="flex-1 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg py-1.5 transition-colors"
+                    >
+                      Diagnóstico →
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -972,7 +988,7 @@ export default function PeriodosPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-black text-slate-900">
-              Evolucion entre campanas
+              Evolucion entre periodos
             </h2>
             <p className="text-sm text-slate-500">
               Comparativa avanzada de clases y volumen de predicciones por
@@ -992,7 +1008,7 @@ export default function PeriodosPage() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5">
             <article className="xl:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <h3 className="font-bold text-slate-800">
-                Tendencia de enfermedades por campana
+                Tendencia de enfermedades por periodo
               </h3>
               <div className="mt-3 h-72">
                 <svg
@@ -1091,7 +1107,7 @@ export default function PeriodosPage() {
             </article>
 
             <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="font-bold text-slate-800">Resumen por campana</h3>
+              <h3 className="font-bold text-slate-800">Resumen por periodo</h3>
               <div className="mt-3 space-y-3">
                 {evolution.map((item) => {
                   const pct =

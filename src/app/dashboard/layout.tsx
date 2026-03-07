@@ -40,7 +40,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 selection:bg-emerald-200 flex flex-col">
+    <div className="h-screen bg-[#f8fafc] font-sans text-slate-900 selection:bg-emerald-200 flex flex-col overflow-hidden">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm shrink-0">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -71,7 +71,7 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)] relative">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-slate-900/50 z-10 lg:hidden"
