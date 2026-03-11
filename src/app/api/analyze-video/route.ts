@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const videoFile = formData.get("video") as File | null;
     const email = formData.get("email") as string | null;
+    const phone = formData.get("phone") as string | null;
     const modelId = formData.get("model") as string | null;
 
     if (!videoFile || typeof videoFile === "string") {
@@ -82,7 +83,14 @@ export async function POST(request: Request) {
 
     const pdfBuffer = await generateReportPdf(analysisResult);
 
-    await sendReportViaWebhook(email.trim(), pdfBuffer, "reporte-analisis-papa.pdf");
+    await sendReportViaWebhook(
+      email.trim(),
+      pdfBuffer,
+      "reporte-analisis-papa.pdf",
+      undefined,
+      undefined,
+      phone?.trim() || undefined
+    );
 
     const response = {
       success: true,

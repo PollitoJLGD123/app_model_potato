@@ -12,6 +12,7 @@ export default function VideoAnalyzerForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedModel, setSelectedModel] = useState("");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
@@ -60,6 +61,9 @@ export default function VideoAnalyzerForm() {
       const formData = new FormData();
       formData.append("video", selectedFile);
       formData.append("email", email.trim());
+      if (phone.trim()) {
+        formData.append("phone", phone.trim());
+      }
       if (selectedModel) {
         formData.append("model", selectedModel);
       }
@@ -82,6 +86,7 @@ export default function VideoAnalyzerForm() {
       }
       setSelectedFile(null);
       setEmail("");
+      setPhone("");
       toast.success("Análisis completado. Revisa tu correo para el PDF.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
@@ -104,7 +109,7 @@ export default function VideoAnalyzerForm() {
         </h2>
         <p className="text-slate-500 text-sm mt-1">
           Sube un video de hojas de papa para detectar Tizón temprano o tardío.
-          El reporte se enviará a tu correo.
+          El reporte se enviará por correo y opcionalmente por WhatsApp.
         </p>
       </div>
 
@@ -139,6 +144,27 @@ export default function VideoAnalyzerForm() {
           disabled={loading}
           className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 placeholder:text-slate-400 disabled:opacity-50"
         />
+      </div>
+
+      <div>
+        <label
+          htmlFor="phone"
+          className="block text-sm font-medium text-slate-700 mb-2"
+        >
+          Teléfono (WhatsApp, opcional)
+        </label>
+        <input
+          id="phone"
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="+51987654321"
+          disabled={loading}
+          className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 placeholder:text-slate-400 disabled:opacity-50"
+        />
+        <p className="text-xs text-slate-500 mt-1">
+          Incluye código de país (ej. +51 para Perú)
+        </p>
       </div>
 
       {error && error !== "Solo se permiten archivos .mp4 o .mov" && (

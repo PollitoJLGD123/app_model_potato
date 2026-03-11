@@ -87,6 +87,7 @@ export default function HistoryPage() {
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailInput, setEmailInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const imageRef = useRef<HTMLImageElement>(null);
@@ -366,16 +367,21 @@ export default function HistoryPage() {
         reader.readAsDataURL(blob);
       });
 
+      const payload: Record<string, string> = {
+        email,
+        subject: `Reporte de Predicción #${selected.id} - ${diseaseName(selected.fase2_resumen?.clase_predicha ?? "Sin clasificar")}`,
+        title: `Reporte de Predicción #${selected.id}`,
+        pdf: base64,
+        filename,
+      };
+      if (phoneInput.trim()) {
+        payload.phone = phoneInput.trim();
+      }
+
       const res = await fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          subject: `Reporte de Predicción #${selected.id} - ${diseaseName(selected.fase2_resumen?.clase_predicha ?? "Sin clasificar")}`,
-          title: `Reporte de Predicción #${selected.id}`,
-          pdf: base64,
-          filename,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -386,6 +392,7 @@ export default function HistoryPage() {
       toast.success("Reporte enviado por correo exitosamente");
       setEmailModalOpen(false);
       setEmailInput("");
+      setPhoneInput("");
     } catch (error) {
       console.error("Error al enviar correo:", error);
       toast.dismiss();
@@ -559,6 +566,7 @@ export default function HistoryPage() {
                     if (!sendingEmail) {
                       setEmailModalOpen(false);
                       setEmailInput("");
+                      setPhoneInput("");
                     }
                   }}
                   disabled={sendingEmail}
@@ -570,7 +578,7 @@ export default function HistoryPage() {
               <div className="p-4 space-y-4">
                 <p className="text-sm text-slate-600">
                   Se generará el PDF del reporte y se enviará al correo que
-                  indiques.
+                  indiques. Opcionalmente por WhatsApp.
                 </p>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -585,6 +593,19 @@ export default function HistoryPage() {
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none disabled:bg-slate-50 disabled:text-slate-500"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Teléfono (WhatsApp, opcional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="+51987654321"
+                    disabled={sendingEmail}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                  />
+                </div>
               </div>
               <div className="flex gap-2 justify-end p-4 border-t border-slate-200">
                 <button
@@ -593,6 +614,7 @@ export default function HistoryPage() {
                     if (!sendingEmail) {
                       setEmailModalOpen(false);
                       setEmailInput("");
+                      setPhoneInput("");
                     }
                   }}
                   disabled={sendingEmail}

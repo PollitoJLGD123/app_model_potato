@@ -7,6 +7,7 @@
 
 export interface WebhookEmailPayload {
   email: string;
+  phone?: string;
   subject: string;
   title: string;
   pdf: string;
@@ -18,7 +19,8 @@ export async function sendReportViaWebhook(
   pdfBuffer: Buffer,
   filename: string = "reporte-analisis-papa.pdf",
   subject?: string,
-  title?: string
+  title?: string,
+  phone?: string
 ): Promise<void> {
   const webhookUrl = process.env.NEXT_PUBLIC_SEND_EMAIL_WEBHOOK;
   if (!webhookUrl) {
@@ -36,6 +38,9 @@ export async function sendReportViaWebhook(
     pdf: base64,
     filename,
   };
+  if (phone?.trim()) {
+    payload.phone = phone.trim();
+  }
 
   const res = await fetch(webhookUrl, {
     method: "POST",
