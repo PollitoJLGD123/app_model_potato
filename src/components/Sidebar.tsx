@@ -93,6 +93,16 @@ const navGroups: NavGroup[] = [
       },
     ],
   },
+  {
+    heading: "Análisis IA",
+    items: [
+      {
+        label: "Análisis por Video",
+        path: "/llm",
+        icon: <Camera />,
+      },
+    ],
+  },
 ];
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
