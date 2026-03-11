@@ -22,14 +22,15 @@ export async function generateReportPdf(data: AnalysisResult): Promise<Buffer> {
 
   doc.setFontSize(10);
   doc.setTextColor(100, 116, 139); // slate-500
-  doc.text(
-    `Generado el ${new Date().toLocaleDateString("es-ES", {
-      dateStyle: "long",
-      timeStyle: "short",
-    })}`,
-    14,
-    y
-  );
+  const fecha = new Date();
+  const fechaStr = fecha.toLocaleString("es-ES", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  doc.text(`Generado el ${fechaStr}`, 14, y);
   y += 20;
 
   // Sección: Análisis general

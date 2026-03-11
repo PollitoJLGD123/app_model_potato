@@ -84,12 +84,24 @@ export async function POST(request: Request) {
 
     await sendReportViaWebhook(email.trim(), pdfBuffer, "reporte-analisis-papa.pdf");
 
-    return NextResponse.json({
+    const response = {
       success: true,
       message: "Análisis completado. Revisa tu correo para el PDF.",
       analysis: analysisResult,
-    });
+    };
+    console.log("[analyze-video] Respuesta OK:", JSON.stringify(response, null, 2));
+    return NextResponse.json(response);
   } catch (err) {
+    // Siempre imprimir la respuesta/error completa para depuración
+    console.error("[analyze-video] Error completo:", err);
+    if (err instanceof Error) {
+      console.error("[analyze-video] message:", err.message);
+      console.error("[analyze-video] stack:", err.stack);
+      if (err.cause) console.error("[analyze-video] cause:", err.cause);
+    }
+    const errAny = err as Record<string, unknown> | null;
+    if (errAny?.response) console.error("[analyze-video] response:", errAny.response);
+
     const message =
       err instanceof Error ? err.message : "Error interno del servidor";
 
@@ -107,7 +119,14 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    const errorPayload = { error: message };
+    if (err && typeof err === "object") {
+      const extra: Record<string, unknown> = {};
+      if ("cause" in err) extra.cause = String((err as Error).cause);
+      if ("stack" in err) extra.stack = (err as Error).stack;
+      Object.assign(errorPayload, extra);
+    }
+    return NextResponse.json(errorPayload, { status: 500 });
   } finally {
     if (tempPath) {
       try {
