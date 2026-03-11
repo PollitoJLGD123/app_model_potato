@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import VideoTimeline from "./VideoTimeline";
+import VideoSelector from "./VideoSelector";
+import ModelSelector from "./ModelSelector";
 import type { AnalysisResult } from "../types/analysis";
 
 export default function VideoAnalyzerForm() {
@@ -11,26 +13,21 @@ export default function VideoAnalyzerForm() {
   const [success, setSuccess] = useState(false);
   const [email, setEmail] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedModel, setSelectedModel] = useState("");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
     null
   );
   const [videoForTimeline, setVideoForTimeline] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const validTypes = ["video/mp4", "video/quicktime"];
-      const validExt = /\.(mp4|mov)$/i;
-      if (!validTypes.includes(file.type) && !validExt.test(file.name)) {
-        setError("Solo se permiten archivos .mp4 o .mov");
-        setSelectedFile(null);
-        return;
-      }
-      setSelectedFile(file);
-      setError(null);
+  const handleFileChange = (file: File | null) => {
+    setSelectedFile(file);
+  };
+
+  const handleValidationError = (message: string | null) => {
+    if (message) {
+      setError(message);
     } else {
-      setSelectedFile(null);
+      setError((prev) => (prev === "Solo se permiten archivos .mp4 o .mov" ? null : prev));
     }
   };
 
@@ -63,6 +60,9 @@ export default function VideoAnalyzerForm() {
       const formData = new FormData();
       formData.append("video", selectedFile);
       formData.append("email", email.trim());
+      if (selectedModel) {
+        formData.append("model", selectedModel);
+      }
 
       const res = await fetch("/api/analyze-video", {
         method: "POST",
@@ -82,9 +82,6 @@ export default function VideoAnalyzerForm() {
       }
       setSelectedFile(null);
       setEmail("");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
       toast.success("Análisis completado. Revisa tu correo para el PDF.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
@@ -111,28 +108,19 @@ export default function VideoAnalyzerForm() {
         </p>
       </div>
 
-      <div>
-        <label
-          htmlFor="video"
-          className="block text-sm font-medium text-slate-700 mb-2"
-        >
-          Video (.mp4 o .mov)
-        </label>
-        <input
-          ref={fileInputRef}
-          id="video"
-          type="file"
-          accept=".mp4,.mov,video/mp4,video/quicktime"
-          onChange={handleFileChange}
-          disabled={loading}
-          className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer disabled:opacity-50"
-        />
-        {selectedFile && (
-          <p className="text-xs text-slate-500 mt-1">
-            Seleccionado: {selectedFile.name}
-          </p>
-        )}
-      </div>
+      <VideoSelector
+        selectedFile={selectedFile}
+        onFileChange={handleFileChange}
+        onValidationError={handleValidationError}
+        disabled={loading}
+        error={error === "Solo se permiten archivos .mp4 o .mov" ? error : null}
+      />
+
+      <ModelSelector
+        value={selectedModel}
+        onChange={setSelectedModel}
+        disabled={loading}
+      />
 
       <div>
         <label
@@ -153,7 +141,7 @@ export default function VideoAnalyzerForm() {
         />
       </div>
 
-      {error && (
+      {error && error !== "Solo se permiten archivos .mp4 o .mov" && (
         <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
           {error}
         </div>

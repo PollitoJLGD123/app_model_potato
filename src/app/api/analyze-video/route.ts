@@ -6,7 +6,7 @@
  * - email: correo del usuario para enviar el PDF
  *
  * Flujo: guardar temporalmente → subir a Gemini → polling hasta ACTIVE →
- * analizar con gemini-1.5-pro → generar PDF → enviar por correo
+ * analizar con gemini-1.5-pro → generar PDF → enviar por webhook (igual que historial)
  */
 
 import { NextResponse } from "next/server";
@@ -18,7 +18,7 @@ import {
   analyzeVideoWithGemini,
 } from "@/app/llm/lib/gemini-analyzer";
 import { generateReportPdf } from "@/app/llm/lib/pdf-generator";
-import { sendReportEmail } from "@/app/llm/lib/email-sender";
+import { sendReportViaWebhook } from "@/app/llm/lib/email-webhook";
 
 const ALLOWED_MIMES = ["video/mp4", "video/quicktime"];
 
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const videoFile = formData.get("video") as File | null;
     const email = formData.get("email") as string | null;
+    const modelId = formData.get("model") as string | null;
 
     if (!videoFile || typeof videoFile === "string") {
       return NextResponse.json(
@@ -73,11 +74,15 @@ export async function POST(request: Request) {
 
     const { fileUri, mimeType } = await uploadVideoToGemini(tempPath, mime);
 
-    const analysisResult = await analyzeVideoWithGemini(fileUri, mimeType);
+    const analysisResult = await analyzeVideoWithGemini(
+      fileUri,
+      mimeType,
+      modelId?.trim() || undefined
+    );
 
     const pdfBuffer = await generateReportPdf(analysisResult);
 
-    await sendReportEmail(email.trim(), pdfBuffer, "reporte-analisis-papa.pdf");
+    await sendReportViaWebhook(email.trim(), pdfBuffer, "reporte-analisis-papa.pdf");
 
     return NextResponse.json({
       success: true,
@@ -95,9 +100,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (message.includes("SMTP") || message.includes("Configuración SMTP")) {
+    if (message.includes("SEND_EMAIL_WEBHOOK") || message.includes("Webhook")) {
       return NextResponse.json(
-        { error: "Error al enviar el correo. Contacta al administrador." },
+        { error: "Error al enviar el correo. Verifica la configuración del webhook." },
         { status: 500 }
       );
     }

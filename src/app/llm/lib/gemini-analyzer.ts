@@ -1,10 +1,12 @@
 /**
  * Módulo de análisis de video con Google Gemini.
- * Sube el video a la Files API, espera procesamiento (polling) y analiza con gemini-1.5-pro.
+ * Sube el video a la Files API, espera procesamiento (polling) y analiza con el modelo disponible.
+ * El modelo se selecciona dinámicamente vía ListModels (generateContent).
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager, FileState } from "@google/generative-ai/server";
+import { getModelForGenerateContent } from "./gemini-models";
 import type { AnalysisResult } from "../types/analysis";
 
 const POLL_INTERVAL_MS = 3000;
@@ -91,20 +93,24 @@ export async function uploadVideoToGemini(
 }
 
 /**
- * Analiza el video con Gemini 1.5 Pro y retorna el JSON estructurado.
+ * Analiza el video con Gemini y retorna el JSON estructurado.
+ * Usa el modelo especificado o ListModels para seleccionar uno disponible.
  */
 export async function analyzeVideoWithGemini(
   fileUri: string,
-  mimeType: string
+  mimeType: string,
+  modelId?: string
 ): Promise<AnalysisResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY no está configurada en las variables de entorno");
   }
 
+  const modelName = modelId ?? (await getModelForGenerateContent());
+
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-pro",
+    model: modelName,
     systemInstruction: SYSTEM_PROMPT,
     generationConfig: {
       responseMimeType: "application/json",
