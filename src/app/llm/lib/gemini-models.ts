@@ -17,21 +17,17 @@ interface ListModelsResponse {
   nextPageToken?: string;
 }
 
-/** Orden de preferencia: Pro > Flash, versiones más recientes primero */
-const PREFERRED_PREFIXES = [
-  "gemini-2.5-pro",
-  "gemini-2.0-pro",
-  "gemini-1.5-pro",
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+/** Solo modelos flash-lite. Orden de preferencia. */
+const PREFERRED_FLASH_LITE = [
+  "gemini-2.0-flash-lite",
+  "gemini-2.5-flash-lite",
 ];
 
 let cachedModel: string | null = null;
 
 /**
  * Obtiene la lista de modelos disponibles y selecciona uno que soporte generateContent.
- * Prioriza modelos Pro para análisis de video.
+ * Solo considera modelos flash-lite.
  */
 export async function getModelForGenerateContent(): Promise<string> {
   if (cachedModel) {
@@ -58,19 +54,24 @@ export async function getModelForGenerateContent(): Promise<string> {
 
   const supported = models.filter((m) => methods(m).includes("generateContent"));
 
-  if (supported.length === 0) {
-    throw new Error(
-      "No se encontraron modelos Gemini que soporten generateContent. Verifica tu API key."
-    );
-  }
-
-  // Extraer nombre corto (sin prefix "models/")
   const getShortName = (name: string) =>
     name.startsWith("models/") ? name.slice(7) : name;
 
-  // Priorizar por lista de preferencia
-  for (const prefix of PREFERRED_PREFIXES) {
-    const match = supported.find((m) => {
+  // Solo flash-lite (sin fallback a otros modelos)
+  const modelsToUse = supported.filter((m) => {
+    const short = getShortName(m.name).toLowerCase();
+    return short.includes("flash-lite") || short.includes("flash lite");
+  });
+
+  if (modelsToUse.length === 0) {
+    throw new Error(
+      "No se encontraron modelos Gemini flash-lite. Verifica tu API key."
+    );
+  }
+
+  // Priorizar por lista de preferencia (flash-lite)
+  for (const prefix of PREFERRED_FLASH_LITE) {
+    const match = modelsToUse.find((m) => {
       const short = getShortName(m.name);
       return short === prefix || short.startsWith(prefix + "-");
     });
@@ -80,8 +81,8 @@ export async function getModelForGenerateContent(): Promise<string> {
     }
   }
 
-  // Fallback: primer modelo que soporte generateContent
-  cachedModel = getShortName(supported[0].name);
+  // Fallback: primer flash-lite disponible
+  cachedModel = getShortName(modelsToUse[0].name);
   return cachedModel;
 }
 
@@ -101,7 +102,7 @@ export interface ModelInfo {
 let cachedModelsList: ModelInfo[] | null = null;
 
 /**
- * Lista todos los modelos disponibles que soportan generateContent.
+ * Lista modelos flash-lite disponibles que soportan generateContent.
  * Retorna id (nombre corto), name y displayName para el selector.
  */
 export async function listGeminiModels(): Promise<ModelInfo[]> {
@@ -132,19 +133,20 @@ export async function listGeminiModels(): Promise<ModelInfo[]> {
   const getShortName = (name: string) =>
     name.startsWith("models/") ? name.slice(7) : name;
 
-  cachedModelsList = supported.map((m) => ({
+  // Solo modelos que contengan "flash lite" (o "flash-lite")
+  const modelsToUse = supported.filter((m) => {
+    const short = getShortName(m.name).toLowerCase();
+    return short.includes("flash-lite") || short.includes("flash lite");
+  });
+
+  cachedModelsList = modelsToUse.map((m) => ({
     id: getShortName(m.name),
     name: m.name,
     displayName: m.displayName ?? getShortName(m.name),
   }));
 
-  // Ordenar: Pro primero, luego Flash, por nombre
-  cachedModelsList.sort((a, b) => {
-    const aPro = a.id.includes("pro") ? 0 : 1;
-    const bPro = b.id.includes("pro") ? 0 : 1;
-    if (aPro !== bPro) return aPro - bPro;
-    return a.id.localeCompare(b.id);
-  });
+  // Ordenar por nombre
+  cachedModelsList.sort((a, b) => a.id.localeCompare(b.id));
 
   return cachedModelsList;
 }
